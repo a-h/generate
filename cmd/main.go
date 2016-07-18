@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"sort"
 
 	"github.com/a-h/generate"
 	"github.com/a-h/generate/jsonschema"
@@ -34,14 +35,39 @@ func main() {
 	//TODO: Use templates.
 	fmt.Println("package main")
 
-	for _, s := range structs {
+	for _, k := range getOrderedStructNames(structs) {
+		s := structs[k]
+
 		fmt.Println("")
 		fmt.Printf("type %s struct {\n", s.Name)
 
-		for _, f := range s.Fields {
+		for _, fieldKey := range getOrderedFieldNames(s.Fields) {
+			f := s.Fields[fieldKey]
 			fmt.Printf("  %s %s `json:\"%s\"`\n", f.Name, f.Type, f.JSONName)
 		}
 
 		fmt.Println("}")
 	}
+}
+
+func getOrderedFieldNames(m map[string]generate.Field) []string {
+	keys := make([]string, len(m))
+	idx := 0
+	for k := range m {
+		keys[idx] = k
+		idx++
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func getOrderedStructNames(m map[string]generate.Struct) []string {
+	keys := make([]string, len(m))
+	idx := 0
+	for k := range m {
+		keys[idx] = k
+		idx++
+	}
+	sort.Strings(keys)
+	return keys
 }
