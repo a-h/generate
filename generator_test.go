@@ -1,7 +1,7 @@
 package generate
 
 import (
-	"log"
+	"strings"
 	"testing"
 
 	"github.com/a-h/generate/jsonschema"
@@ -55,10 +55,14 @@ func TestThatStructsAreNamedWell(t *testing.T) {
 			input:    "#/Example",
 			expected: "Example",
 		},
+		{
+			input:    "#/",
+			expected: "Root",
+		},
 	}
 
 	for idx, test := range tests {
-		actual := getStructName(test.input)
+		actual := getStructName(test.input, 1)
 		if actual != test.expected {
 			t.Errorf("Test %d failed: For input \"%s\", expected \"%s\", got \"%s\"", idx, test.input, test.expected, actual)
 		}
@@ -97,6 +101,76 @@ func testField(actual Field, expectedJSONName string, expectedName string, expec
 	}
 }
 
+func TestNestedStructGeneration(t *testing.T) {
+	root := &jsonschema.Root{}
+	root.ID = "Example"
+	root.Properties = map[string]*jsonschema.Schema{
+		"property1": &jsonschema.Schema{
+			Type: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"subproperty1": &jsonschema.Schema{Type: "string"},
+			},
+		},
+	}
+
+	g := New(root)
+	results := g.CreateStructs()
+
+	if len(results) != 2 {
+		t.Errorf("2 results should have been created, a root type and a type for the object 'property1' but %d structs were made", len(results))
+	}
+
+	if _, contains := results["Example"]; !contains {
+		t.Errorf("The Example type should have been made, but only types %s were made.", strings.Join(getStructNamesFromMap(results), ", "))
+	}
+
+	if _, contains := results["Property1"]; !contains {
+		t.Errorf("The Property1 type should have been made, but only types %s were made.", strings.Join(getStructNamesFromMap(results), ", "))
+	}
+
+	if results["Example"].Fields["Property1"].Type != "Property1" {
+		t.Errorf("Expected that the nested type property1 is generated as a struct, so the property type should be Property1, but was %s.", results["Example"].Fields["Property1"].Type)
+	}
+}
+
+func TestStructNameExtractor(t *testing.T) {
+	m := make(map[string]Struct)
+	m["name1"] = Struct{}
+	m["name2"] = Struct{}
+
+	names := getStructNamesFromMap(m)
+	if len(names) != 2 {
+		t.Error("Didn't extract all names from the map.")
+	}
+
+	if !contains(names, "name1") {
+		t.Error("name1 was not extracted")
+	}
+
+	if !contains(names, "name2") {
+		t.Error("name2 was not extracted")
+	}
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
+func getStructNamesFromMap(m map[string]Struct) []string {
+	sn := make([]string, len(m))
+	i := 0
+	for k := range m {
+		sn[i] = k
+		i++
+	}
+	return sn
+}
+
 func TestStructGeneration(t *testing.T) {
 	root := &jsonschema.Root{}
 	root.Definitions = make(map[string]*jsonschema.Schema)
@@ -116,9 +190,5 @@ func TestStructGeneration(t *testing.T) {
 
 	if len(results) != 2 {
 		t.Error("2 results should have been created, a root type and an address")
-	}
-
-	for _, v := range results {
-		log.Print(v)
 	}
 }

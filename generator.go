@@ -1,6 +1,8 @@
 package generate
 
 import (
+	"bytes"
+	"sort"
 	"strings"
 
 	"github.com/a-h/generate/jsonschema"
@@ -18,34 +20,50 @@ func New(schema *jsonschema.Root) *Generator {
 	}
 }
 
-// CreateStructs creates structs from the JSON schema.
-func (g *Generator) CreateStructs() []Struct {
-	structs := []Struct{}
+// CreateStructs creates structs from the JSON schema, keyed by the golang name.
+func (g *Generator) CreateStructs() map[string]Struct {
+	structs := map[string]Struct{}
 
+	// Extract nested and complex types from the JSON schema.
 	types := g.schema.ExtractTypes()
 
-	for k, v := range types {
+	for _, k := range getOrderedKeyNamesFromSchemaMap(types) {
+		v := types[k]
+
 		s := Struct{
 			ID:     k,
-			Name:   getStructName(k),
+			Name:   getStructName(k, 1),
 			Fields: getFields(v.Properties, types),
 		}
 
-		structs = append(structs, s)
+		structs[s.Name] = s
 	}
 
 	return structs
 }
 
+func getOrderedKeyNamesFromSchemaMap(m map[string]*jsonschema.Schema) []string {
+	keys := make([]string, len(m))
+	idx := 0
+	for k := range m {
+		keys[idx] = k
+		idx++
+	}
+	sort.Strings(keys)
+	return keys
+}
+
 func getFields(properties map[string]*jsonschema.Schema, types map[string]*jsonschema.Schema) map[string]Field {
 	fields := map[string]Field{}
 
-	for k, v := range properties {
+	for _, k := range getOrderedKeyNamesFromSchemaMap(properties) {
+		v := properties[k]
+
 		f := Field{
 			Name:     getGolangName(k),
 			JSONName: k,
 			// Look up the types, try references first, then drop to the built-in types.
-			Type: getType(v, types),
+			Type: getType(getGolangName(k), v, types),
 		}
 
 		fields[f.Name] = f
@@ -54,12 +72,18 @@ func getFields(properties map[string]*jsonschema.Schema, types map[string]*jsons
 	return fields
 }
 
-func getType(schema *jsonschema.Schema, types map[string]*jsonschema.Schema) string {
-	if _, ok := types[schema.Reference]; ok {
-		return getStructName(schema.Reference)
+func getType(fieldName string, fieldSchema *jsonschema.Schema, types map[string]*jsonschema.Schema) string {
+	if _, ok := types[fieldSchema.Reference]; ok {
+		return getStructName(fieldSchema.Reference, 1)
 	}
 
-	return getPrimitiveTypeName(schema.Type)
+	// In the case that the field has properties, then its a complex type and will have a struct
+	// generated for it.
+	if len(fieldSchema.Properties) > 0 {
+		return getGolangName(fieldName)
+	}
+
+	return getPrimitiveTypeName(fieldSchema.Type)
 }
 
 func getPrimitiveTypeName(schemaType string) string {
@@ -84,11 +108,25 @@ func getPrimitiveTypeName(schemaType string) string {
 }
 
 // getStructName makes a golang struct name from an input reference in the form of #/definitions/address
-func getStructName(reference string) string {
-	n := strings.Replace(reference, "#/definitions/", "", -1)
-	n = strings.Replace(n, "#/", "", -1)
+// The parts refers to the number of segments from the end to take as the name.
+func getStructName(reference string, n int) string {
+	clean := strings.Replace(reference, "#/", "", -1)
+	parts := strings.Split(clean, "/")
+	partsToUse := parts[len(parts)-n:]
 
-	return getGolangName(n)
+	sb := bytes.Buffer{}
+
+	for _, p := range partsToUse {
+		sb.WriteString(getGolangName(p))
+	}
+
+	result := sb.String()
+
+	if result == "" {
+		return "Root"
+	}
+
+	return result
 }
 
 // getGolangName strips invalid characters out of golang struct or field names.

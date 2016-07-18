@@ -40,20 +40,29 @@ func Parse(schema string) (*Root, error) {
 
 // ExtractTypes creates a map of defined types within the schema.
 func (s *Root) ExtractTypes() map[string]*Schema {
-	m := make(map[string]*Schema)
+	types := make(map[string]*Schema)
 
 	// Pass in the # to start the path off.
-	addTypeAndChildrenToMap("#", s.ID, &s.Schema, m)
+	addTypeAndChildrenToMap("#", s.ID, &s.Schema, types)
 
-	return m
+	return types
 }
 
 func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[string]*Schema) {
-	types[path+"/"+name] = s
+	if len(s.Properties) > 0 {
+		types[path+"/"+name] = s
+	}
 
 	if s.Definitions != nil {
 		for k, d := range s.Definitions {
 			addTypeAndChildrenToMap(path+"/definitions", k, d, types)
+		}
+	}
+
+	if s.Properties != nil {
+		for k, d := range s.Properties {
+			// Only add the children as their own type if they have properties at all.
+			addTypeAndChildrenToMap(path+"/"+"properties", k, d, types)
 		}
 	}
 }

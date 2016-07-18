@@ -114,6 +114,9 @@ func TestThatTypesCanBeExtracted(t *testing.T) {
                     }
                 }
             }
+        },
+        "properties": {
+            "address": { "$ref": "#/definitions/address" }
         }
     }`
 	so, err := Parse(s)
@@ -139,6 +142,46 @@ func TestThatTypesCanBeExtracted(t *testing.T) {
 	// Check that the names of the types map to expected references.
 	if _, ok := types["#/definitions/address"]; !ok {
 		t.Errorf("was expecting to find the address type in the map under key #/definitions/address, available types were %s",
+			strings.Join(getKeyNames(types), ", "))
+	}
+}
+
+func TestThatNestedTypesCanBeExtracted(t *testing.T) {
+	s := `{
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "Example",
+        "properties": {
+            "favouritecat": {
+                "enum": [ "A", "B", "C", "D", "E", "F" ],
+                "type": "string"
+            },
+            "subobject": {
+                "type": "object",
+                "properties": {
+                    "subproperty1": {
+                        "type": "date"
+                    }
+                }
+            }
+        }
+    }`
+	so, err := Parse(s)
+
+	if err != nil {
+		t.Error("failed to parse the test JSON: ", err)
+	}
+
+	// Check that the types can be extracted into a map.
+	types := so.ExtractTypes()
+
+	if len(types) != 2 {
+		t.Errorf("expected 2 types, the example and subobject, but got %d types - %s", len(types),
+			strings.Join(getKeyNames(types), ", "))
+	}
+
+	// Check that the names of the types map to expected references.
+	if _, ok := types["#/properties/subobject"]; !ok {
+		t.Errorf("was expecting to find the subobject type in the map under key #/properties/subobject, available types were %s",
 			strings.Join(getKeyNames(types), ", "))
 	}
 }
