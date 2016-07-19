@@ -43,7 +43,7 @@ func main() {
 
 		for _, fieldKey := range getOrderedFieldNames(s.Fields) {
 			f := s.Fields[fieldKey]
-			fmt.Printf("  %s %s `json:\"%s\"`\n", f.Name, f.Type, f.JSONName)
+			fmt.Printf("  %s %s `json:\"%s,omitempty\"`\n", f.Name, f.Type, f.JSONName)
 		}
 
 		fmt.Println("}")
