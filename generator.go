@@ -80,7 +80,8 @@ func getType(fieldName string, fieldSchema *jsonschema.Schema, types map[string]
 	// In the case that the field has properties, then its a complex type and will have a struct
 	// generated for it.
 	if len(fieldSchema.Properties) > 0 {
-		return getGolangName(fieldName)
+		// The '*' is required because the field needs be a pointer to the type to be omitted when nil.
+		return "*" + getGolangName(fieldName)
 	}
 
 	return getPrimitiveTypeName(fieldSchema.Type)

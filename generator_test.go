@@ -128,8 +128,8 @@ func TestNestedStructGeneration(t *testing.T) {
 		t.Errorf("The Property1 type should have been made, but only types %s were made.", strings.Join(getStructNamesFromMap(results), ", "))
 	}
 
-	if results["Example"].Fields["Property1"].Type != "Property1" {
-		t.Errorf("Expected that the nested type property1 is generated as a struct, so the property type should be Property1, but was %s.", results["Example"].Fields["Property1"].Type)
+	if results["Example"].Fields["Property1"].Type != "*Property1" {
+		t.Errorf("Expected that the nested type property1 is generated as a struct, so the property type should be *Property1, but was %s.", results["Example"].Fields["Property1"].Type)
 	}
 }
 
