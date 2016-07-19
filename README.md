@@ -104,24 +104,24 @@ Get this:
 package main
 
 type Address struct {
-  County string `json:"county"`
-  District string `json:"district"`
-  FlatNumber string `json:"flatNumber"`
-  HouseName string `json:"houseName"`
-  HouseNumber string `json:"houseNumber"`
-  Postcode string `json:"postcode"`
-  Street string `json:"street"`
-  Town string `json:"town"`
+  County string `json:"county,omitempty"`
+  District string `json:"district,omitempty"`
+  FlatNumber string `json:"flatNumber,omitempty"`
+  HouseName string `json:"houseName,omitempty"`
+  HouseNumber string `json:"houseNumber,omitempty"`
+  Postcode string `json:"postcode,omitempty"`
+  Street string `json:"street,omitempty"`
+  Town string `json:"town,omitempty"`
 }
 
 type Example struct {
-  Address Address `json:"address"`
-  Name string `json:"name"`
-  Status Status `json:"status"`
+  Address *Address `json:"address,omitempty"`
+  Name string `json:"name,omitempty"`
+  Status *Status `json:"status,omitempty"`
 }
 
 type Status struct {
-  Favouritecat string `json:"favouritecat"`
+  Favouritecat string `json:"favouritecat,omitempty"`
 }
 ```
 
