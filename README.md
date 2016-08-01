@@ -4,7 +4,7 @@ Generates Go (golang) Structs from JSON schema.
 
 # Examples
 
-```
+```json
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Example",
@@ -94,13 +94,13 @@ Generates Go (golang) Structs from JSON schema.
 
 Run this:
 
-```
+```bash
 go run main.go -i exampleschema.json
 ```
 
 Get this:
 
-```
+```go
 package main
 
 type Address struct {
