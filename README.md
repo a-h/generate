@@ -4,7 +4,7 @@ Generates Go (golang) Structs from JSON schema.
 
 # Examples
 
-```json
+```javascript
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Example",
