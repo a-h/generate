@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"io"
+	"io/ioutil"
 	"reflect"
 	"strings"
 	"testing"
@@ -34,5 +37,22 @@ func TestThatStructNamesAreOrdered(t *testing.T) {
 
 	if !reflect.DeepEqual(actual, expected) {
 		t.Errorf("expected %s and actual %s should match in order", strings.Join(expected, ", "), strings.Join(actual, ","))
+	}
+}
+
+func TestThatThePackageCanBeSet(t *testing.T) {
+	pkg := "testpackage"
+	p = &pkg
+
+	r, w := io.Pipe()
+
+	go Output(w, make(map[string]generate.Struct))
+
+	lr := io.LimitedReader{R: r, N: 20}
+	bs, _ := ioutil.ReadAll(&lr)
+	output := bytes.NewBuffer(bs).String()
+
+	if output != "package testpackage\n" {
+		t.Error("Unexpected package declaration: ", output)
 	}
 }
