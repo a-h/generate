@@ -52,7 +52,7 @@ func main() {
 		}
 	}
 
-	Output(w, structs)
+	output(w, structs)
 }
 
 func getOrderedFieldNames(m map[string]generate.Field) []string {
@@ -77,7 +77,7 @@ func getOrderedStructNames(m map[string]generate.Struct) []string {
 	return keys
 }
 
-func Output(w io.Writer, structs map[string]generate.Struct) {
+func output(w io.Writer, structs map[string]generate.Struct) {
 	//TODO: Use templates.
 	fmt.Fprintf(w, "package %v\n", *p)
 
