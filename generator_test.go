@@ -90,7 +90,7 @@ func TestFieldGeneration(t *testing.T) {
 	}
 
 	testField(result["Property1"], "property1", "Property1", "string", t)
-	testField(result["Property2"], "property2", "Property2", "Address", t)
+	testField(result["Property2"], "property2", "Property2", "*Address", t)
 }
 
 func testField(actual Field, expectedJSONName string, expectedName string, expectedType string, t *testing.T) {
