@@ -114,7 +114,18 @@ func TestThatTypesCanBeExtracted(t *testing.T) {
                         "type": "string"
                     }
                 }
-            }
+            },
+			"links": {
+				"type": "array",
+				"items": {
+					"type": "object",
+					"properties": {
+						"asset_id": {
+							"type": "string"
+						}
+					}
+				}
+			}
         },
         "properties": {
             "address": { "$ref": "#/definitions/address" }
@@ -127,22 +138,27 @@ func TestThatTypesCanBeExtracted(t *testing.T) {
 	}
 
 	// Check that the definitions have been deserialized correctly into a map.
-	if len(so.Definitions) != 2 {
-		t.Errorf("The parsed schema should have two child definitions, one for address, one for status, but got %s",
+	if len(so.Definitions) != 3 {
+		t.Errorf("The parsed schema should have two child definitions, one for address, one for status, and one for links but got %s",
 			strings.Join(getKeyNames(so.Definitions), ", "))
 	}
 
 	// Check that the types can be extracted into a map.
 	types := so.ExtractTypes()
 
-	if len(types) != 3 {
-		t.Errorf("expected 3 types, the example, address and status, but got %d types - %s", len(types),
+	if len(types) != 4 {
+		t.Errorf("expected 4 types, the example, address, status and links, but got %d types - %s", len(types),
 			strings.Join(getKeyNames(types), ", "))
 	}
 
 	// Check that the names of the types map to expected references.
 	if _, ok := types["#/definitions/address"]; !ok {
 		t.Errorf("was expecting to find the address type in the map under key #/definitions/address, available types were %s",
+			strings.Join(getKeyNames(types), ", "))
+	}
+
+	if _, ok := types["#/definitions/links"]; !ok {
+		t.Errorf("was expecting to find the links type in the map under key #/definitions/links, available types were %s",
 			strings.Join(getKeyNames(types), ", "))
 	}
 }
