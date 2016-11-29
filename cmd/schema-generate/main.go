@@ -37,7 +37,11 @@ func main() {
 
 	g := generate.New(schema)
 
-	structs := g.CreateStructs()
+	structs, err := g.CreateStructs()
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failure generating structs: ", err)
+	}
 
 	var w io.Writer
 

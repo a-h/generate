@@ -1,6 +1,7 @@
 package jsonschema
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -192,4 +193,130 @@ func getKeyNames(m map[string]*Schema) []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+func TestThatArraysAreSupported(t *testing.T) {
+	s := `{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "ProductSet",
+    "type": "array",
+    "items": {
+        "title": "Product",
+        "type": "object",
+        "properties": {
+            "id": {
+                "description": "The unique identifier for a product",
+                "type": "number"
+            },
+            "name": {
+                "type": "string"
+            },
+            "price": {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMinimum": true
+            },
+            "tags": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "minItems": 1,
+                "uniqueItems": true
+            }
+        },
+        "required": ["id", "name", "price"]
+    }
+}`
+	so, err := Parse(s)
+
+	if err != nil {
+		t.Error("failed to parse the test JSON: ", err)
+	}
+
+	// Check that the types can be extracted into a map.
+	types := so.ExtractTypes()
+
+	fmt.Printf("Types: %+v\n", types)
+
+	if len(types) != 1 {
+		t.Errorf("expected 1 type, just the Product, but got %d types - %s", len(types),
+			strings.Join(getKeyNames(types), ", "))
+	}
+
+	// Check that the names of the types map to expected references.
+	ps, ok := types["#/Product"]
+	if !ok {
+		t.Fatalf("was expecting to find the Product type but available types were %s",
+			strings.Join(getKeyNames(types), ", "))
+	}
+
+	if len(ps.Properties) != 4 {
+		t.Errorf("was expecting the Product to have 4 properties, but it had %d", len(ps.Properties))
+	}
+
+	if ps.Properties["tags"].Type != "array" {
+		t.Errorf("expected the 'Tags' property type to be array, but it was %s", ps.Properties["tags"].Type)
+	}
+}
+
+func TestThatReferencesCanBeListed(t *testing.T) {
+	s := `{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Product set",
+    "type": "array",
+    "items": {
+        "title": "Product",
+        "type": "object",
+        "properties": {
+            "id": {
+                "description": "The unique identifier for a product",
+                "type": "number"
+            },
+            "name": {
+                "type": "string"
+            },
+            "price": {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMinimum": true
+            },
+            "tags": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "minItems": 1,
+                "uniqueItems": true
+            },
+            "dimensions": {
+      			"$ref": "#/definitions/address"
+            },
+            "warehouseLocation": {
+                "description": "Coordinates of the warehouse with the product",
+                "$ref": "http://json-schema.org/geo"
+            }
+        },
+        "required": ["id", "name", "price"]
+    }
+}`
+	so, err := Parse(s)
+
+	if err != nil {
+		t.Error("failed to parse the test JSON: ", err)
+	}
+
+	refs := so.ListReferences()
+
+	if len(refs) != 2 {
+		t.Errorf("Expected 1 references, one internal, one external, but got %d references", len(refs))
+	}
+
+	if _, ok := refs["http://json-schema.org/geo"]; !ok {
+		t.Error("Couldn't find the reference to http://json-schema.org/geo")
+	}
+
+	if _, ok := refs["#/definitions/address"]; !ok {
+		t.Error("Couldn't find the reference to #/definitions/address")
+	}
 }

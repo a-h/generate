@@ -79,14 +79,18 @@ func TestFieldGeneration(t *testing.T) {
 		"#/definitions/address": &jsonschema.Schema{},
 	}
 
-	result := getFields(properties, lookupTypes)
+	result, err := getFields(properties, lookupTypes)
+
+	if err != nil {
+		t.Error("Failed to get the fields: ", err)
+	}
 
 	if len(result) != 2 {
 		t.Errorf("Expected 2 results, but got %d results", len(result))
 	}
 
 	testField(result["Property1"], "property1", "Property1", "string", t)
-	testField(result["Property2"], "property2", "Property2", "Address", t)
+	testField(result["Property2"], "property2", "Property2", "*Address", t)
 }
 
 func testField(actual Field, expectedJSONName string, expectedName string, expectedType string, t *testing.T) {
@@ -102,7 +106,7 @@ func testField(actual Field, expectedJSONName string, expectedName string, expec
 }
 
 func TestNestedStructGeneration(t *testing.T) {
-	root := &jsonschema.Root{}
+	root := &jsonschema.Schema{}
 	root.ID = "Example"
 	root.Properties = map[string]*jsonschema.Schema{
 		"property1": &jsonschema.Schema{
@@ -114,7 +118,11 @@ func TestNestedStructGeneration(t *testing.T) {
 	}
 
 	g := New(root)
-	results := g.CreateStructs()
+	results, err := g.CreateStructs()
+
+	if err != nil {
+		t.Error("Failed to create structs: ", err)
+	}
 
 	if len(results) != 2 {
 		t.Errorf("2 results should have been created, a root type and a type for the object 'property1' but %d structs were made", len(results))
@@ -172,7 +180,7 @@ func getStructNamesFromMap(m map[string]Struct) []string {
 }
 
 func TestStructGeneration(t *testing.T) {
-	root := &jsonschema.Root{}
+	root := &jsonschema.Schema{}
 	root.Definitions = make(map[string]*jsonschema.Schema)
 	root.Definitions["address"] = &jsonschema.Schema{
 		Properties: map[string]*jsonschema.Schema{
@@ -186,9 +194,132 @@ func TestStructGeneration(t *testing.T) {
 	}
 
 	g := New(root)
-	results := g.CreateStructs()
+	results, err := g.CreateStructs()
+
+	if err != nil {
+		t.Error("Failed to create structs: ", err)
+	}
 
 	if len(results) != 2 {
 		t.Error("2 results should have been created, a root type and an address")
+	}
+}
+
+func TestArrayGeneration(t *testing.T) {
+	root := &jsonschema.Schema{
+		Title: "Array of Artists Example",
+		Type:  "array",
+		Items: &jsonschema.Schema{
+			Title: "Artist",
+			Type:  "object",
+			Properties: map[string]*jsonschema.Schema{
+				"name":      &jsonschema.Schema{Type: "string"},
+				"birthyear": &jsonschema.Schema{Type: "number"},
+			},
+		},
+	}
+
+	g := New(root)
+	results, err := g.CreateStructs()
+
+	if err != nil {
+		t.Error("Failed to create structs: ", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("Expected one struct should have been generated, but %d have been generated.", len(results))
+	}
+
+	artistStruct, ok := results["Artist"]
+
+	if !ok {
+		t.Errorf("Expected Name to be Artist, that wasn't found, but the struct contains \"%+v\"", results)
+	}
+
+	if len(artistStruct.Fields) != 2 {
+		t.Errorf("Expected the fields to be birtyear and name, but %d fields were found.", len(artistStruct.Fields))
+	}
+
+	if _, ok := artistStruct.Fields["Name"]; !ok {
+		t.Errorf("Expected to find a Name field, but one was not found.")
+	}
+
+	if _, ok := artistStruct.Fields["Birthyear"]; !ok {
+		t.Errorf("Expected to find a Birthyear field, but one was not found.")
+	}
+}
+
+func TestNestedArrayGeneration(t *testing.T) {
+	root := &jsonschema.Schema{
+		Title: "Favourite Bars",
+		Type:  "object",
+		Properties: map[string]*jsonschema.Schema{
+			"barName": &jsonschema.Schema{Type: "string"},
+			"cities": &jsonschema.Schema{
+				Type: "array",
+				Items: &jsonschema.Schema{
+					Title: "City",
+					Properties: map[string]*jsonschema.Schema{
+						"name":    &jsonschema.Schema{Type: "string"},
+						"country": &jsonschema.Schema{Type: "string"},
+					},
+				},
+			},
+			"tags": &jsonschema.Schema{
+				Type:  "array",
+				Items: &jsonschema.Schema{Type: "string"},
+			},
+		},
+	}
+
+	g := New(root)
+	results, err := g.CreateStructs()
+
+	if err != nil {
+		t.Error("Failed to create structs: ", err)
+	}
+
+	if len(results) != 2 {
+		t.Errorf("Expected two structs to be generated - 'Favourite Bars' and 'City', but %d have been generated.", len(results))
+	}
+
+	fbStruct, ok := results["FavouriteBars"]
+
+	if !ok {
+		t.Errorf("FavouriteBars struct was not found. The results were %+v", results)
+	}
+
+	if _, ok := fbStruct.Fields["BarName"]; !ok {
+		t.Errorf("Expected to find the BarName field, but didn't. The struct is %+v", fbStruct)
+	}
+
+	if f, ok := fbStruct.Fields["Cities"]; !ok {
+		t.Errorf("Expected to find the Cities field on the FavouriteBars, but didn't. The struct is %+v", fbStruct)
+
+		if f.Type != "City" {
+			t.Errorf("Expected to find that the Cities array was of type City, but it was of %s", f.Type)
+		}
+	}
+
+	if f, ok := fbStruct.Fields["Tags"]; !ok {
+		t.Errorf("Expected to find the Tags field on the FavouriteBars, but didn't. The struct is %+v", fbStruct)
+
+		if f.Type != "array" {
+			t.Errorf("Expected to find that the Tags array was of type array, but it was of %s", f.Type)
+		}
+	}
+
+	cityStruct, ok := results["City"]
+
+	if !ok {
+		t.Error("City struct was not found.")
+	}
+
+	if _, ok := cityStruct.Fields["Name"]; !ok {
+		t.Errorf("Expected to find the Name field on the City struct, but didn't. The struct is %+v", cityStruct)
+	}
+
+	if _, ok := cityStruct.Fields["Country"]; !ok {
+		t.Errorf("Expected to find the Country field on the City struct, but didn't. The struct is %+v", cityStruct)
 	}
 }
