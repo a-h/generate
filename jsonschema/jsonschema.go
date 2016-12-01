@@ -39,39 +39,49 @@ func Parse(schema string) (*Schema, error) {
 func (s *Schema) ExtractTypes() map[string]*Schema {
 	types := make(map[string]*Schema)
 
-	// Pass in the # to start the path off.
-	id := s.ID
-
-	// If there's no ID, try the title instead. Otherwise, the struct will get the name
-	// of "Root".
-	if id == "" {
-		id = s.Title
-	}
-
-	addTypeAndChildrenToMap("#", id, s, types)
+	addTypeAndChildrenToMap("#", "", s, types)
 
 	return types
 }
 
 func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[string]*Schema) {
 	if s.Type == "array" {
-		addTypeAndChildrenToMap(path, s.Items.Title, s.Items, types)
+		arrayTypeName := s.ID
+
+		// If there's no ID, try the title instead.
+		if arrayTypeName == "" {
+			arrayTypeName = s.Items.Title
+		}
+
+		// If there's no title, use the property name to name the type we're creating.
+		if arrayTypeName == "" {
+			arrayTypeName = name
+		}
+
+		addTypeAndChildrenToMap(path, arrayTypeName, s.Items, types)
+		return
+	}
+
+	namePrefix := "/" + name
+	// Don't add the name into the root, or we end up with an extra slash.
+	if path == "#" && name == "" {
+		namePrefix = ""
 	}
 
 	if len(s.Properties) > 0 {
-		types[path+"/"+name] = s
+		types[path+namePrefix] = s
 	}
 
 	if s.Definitions != nil {
 		for k, d := range s.Definitions {
-			addTypeAndChildrenToMap(path+"/definitions", k, d, types)
+			addTypeAndChildrenToMap(path+namePrefix+"/definitions", k, d, types)
 		}
 	}
 
 	if s.Properties != nil {
 		for k, d := range s.Properties {
 			// Only add the children as their own type if they have properties at all.
-			addTypeAndChildrenToMap(path+"/"+"properties", k, d, types)
+			addTypeAndChildrenToMap(path+namePrefix+"/properties", k, d, types)
 		}
 	}
 }

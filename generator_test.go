@@ -45,6 +45,7 @@ func TestThatCapitalisationOccursCorrectly(t *testing.T) {
 func TestThatStructsAreNamedWell(t *testing.T) {
 	tests := []struct {
 		input    string
+		schema   jsonschema.Schema
 		expected string
 	}{
 		{
@@ -56,13 +57,16 @@ func TestThatStructsAreNamedWell(t *testing.T) {
 			expected: "Example",
 		},
 		{
-			input:    "#/",
-			expected: "Root",
+			input:    "#",
+			expected: "TheRootName",
+			schema: jsonschema.Schema{
+				Title: "TheRootName",
+			},
 		},
 	}
 
 	for idx, test := range tests {
-		actual := getStructName(test.input, 1)
+		actual := getStructName(test.input, &test.schema, 1)
 		if actual != test.expected {
 			t.Errorf("Test %d failed: For input \"%s\", expected \"%s\", got \"%s\"", idx, test.input, test.expected, actual)
 		}
@@ -79,7 +83,7 @@ func TestFieldGeneration(t *testing.T) {
 		"#/definitions/address": &jsonschema.Schema{},
 	}
 
-	result, err := getFields(properties, lookupTypes)
+	result, err := getFields("#", properties, lookupTypes)
 
 	if err != nil {
 		t.Error("Failed to get the fields: ", err)
@@ -91,6 +95,35 @@ func TestFieldGeneration(t *testing.T) {
 
 	testField(result["Property1"], "property1", "Property1", "string", t)
 	testField(result["Property2"], "property2", "Property2", "*Address", t)
+}
+
+func TestFieldGenerationWithArrayReferences(t *testing.T) {
+	properties := map[string]*jsonschema.Schema{
+		"property1": &jsonschema.Schema{Type: "string"},
+		"property2": &jsonschema.Schema{
+			Type: "array",
+			Items: &jsonschema.Schema{
+				Reference: "#/definitions/address",
+			},
+		},
+	}
+
+	lookupTypes := map[string]*jsonschema.Schema{
+		"#/definitions/address": &jsonschema.Schema{},
+	}
+
+	result, err := getFields("#", properties, lookupTypes)
+
+	if err != nil {
+		t.Error("Failed to get the fields: ", err)
+	}
+
+	if len(result) != 2 {
+		t.Errorf("Expected 2 results, but got %d results", len(result))
+	}
+
+	testField(result["Property1"], "property1", "Property1", "string", t)
+	testField(result["Property2"], "property2", "Property2", "[]Address", t)
 }
 
 func testField(actual Field, expectedJSONName string, expectedName string, expectedType string, t *testing.T) {
@@ -107,7 +140,7 @@ func testField(actual Field, expectedJSONName string, expectedName string, expec
 
 func TestNestedStructGeneration(t *testing.T) {
 	root := &jsonschema.Schema{}
-	root.ID = "Example"
+	root.Title = "Example"
 	root.Properties = map[string]*jsonschema.Schema{
 		"property1": &jsonschema.Schema{
 			Type: "object",
@@ -181,6 +214,7 @@ func getStructNamesFromMap(m map[string]Struct) []string {
 
 func TestStructGeneration(t *testing.T) {
 	root := &jsonschema.Schema{}
+	root.Title = "RootElement"
 	root.Definitions = make(map[string]*jsonschema.Schema)
 	root.Definitions["address"] = &jsonschema.Schema{
 		Properties: map[string]*jsonschema.Schema{

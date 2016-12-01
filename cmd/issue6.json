@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "physical_server.json",
+  "description": "Physical Server asset",
+  "type": "object",
+  "properties": {
+    "attributes": {
+      "type": "object",
+      "description": "Specific attributes of the asset",
+      "properties": {
+        "hostname": {
+          "type": "string"
+        },
+        "operating_system": {
+          "type": "object",
+          "description": "Running operating system",
+          "properties": {
+            "family": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "revision": {
+              "type": "string"
+            }
+          }
+        },
+        "location": {
+          "type": "string",
+          "description": "Physical location of this server (datacenter, rack, pod, etc)"
+        },
+        "serial_number": {
+          "type": "string"
+        }
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "asset_id": {
+            "type": "string"
+          },
+          "relationship": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

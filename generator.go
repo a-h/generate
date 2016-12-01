@@ -32,18 +32,24 @@ func (g *Generator) CreateStructs() (structs map[string]Struct, err error) {
 
 	errs := []error{}
 
-	for _, k := range getOrderedKeyNamesFromSchemaMap(types) {
-		v := types[k]
+	for _, typeKey := range getOrderedKeyNamesFromSchemaMap(types) {
+		v := types[typeKey]
 
-		fields, err := getFields(v.Properties, types)
+		fields, err := getFields(typeKey, v.Properties, types)
+
+		if err != nil {
+			errs = append(errs, err)
+		}
+
+		structName := getStructName(typeKey, v, 1)
 
 		if err != nil {
 			errs = append(errs, err)
 		}
 
 		s := Struct{
-			ID:     k,
-			Name:   getStructName(k, 1),
+			ID:     typeKey,
+			Name:   structName,
 			Fields: fields,
 		}
 
@@ -82,23 +88,26 @@ func getOrderedKeyNamesFromSchemaMap(m map[string]*jsonschema.Schema) []string {
 	return keys
 }
 
-func getFields(properties map[string]*jsonschema.Schema, types map[string]*jsonschema.Schema) (field map[string]Field, err error) {
+func getFields(parentTypeKey string, properties map[string]*jsonschema.Schema, types map[string]*jsonschema.Schema) (field map[string]Field, err error) {
 	fields := map[string]Field{}
 
 	missingTypes := []string{}
+	errors := []error{}
 
-	for _, k := range getOrderedKeyNamesFromSchemaMap(properties) {
-		v := properties[k]
+	for _, fieldName := range getOrderedKeyNamesFromSchemaMap(properties) {
+		v := properties[fieldName]
 
-		tn, typeFound := getType(getGolangName(k), v, types)
+		golangName := getGolangName(fieldName)
+		tn, err := getTypeForField(parentTypeKey, fieldName, golangName, v, types, true)
 
-		if !typeFound {
-			missingTypes = append(missingTypes, getGolangName(k))
+		if err != nil {
+			missingTypes = append(missingTypes, golangName)
+			errors = append(errors, err)
 		}
 
 		f := Field{
-			Name:     getGolangName(k),
-			JSONName: k,
+			Name:     golangName,
+			JSONName: fieldName,
 			// Look up the types, try references first, then drop to the built-in types.
 			Type: tn,
 		}
@@ -107,74 +116,98 @@ func getFields(properties map[string]*jsonschema.Schema, types map[string]*jsons
 	}
 
 	if len(missingTypes) > 0 {
-		return fields, fmt.Errorf("missing types for %s. ", strings.Join(missingTypes, ","))
+		return fields, fmt.Errorf("missing types for %s with errors %s", strings.Join(missingTypes, ","), joinErrors(errors))
 	}
 
 	return fields, nil
 }
 
-func getType(fieldName string, fieldSchema *jsonschema.Schema, types map[string]*jsonschema.Schema) (typeName string, ok bool) {
-	if _, ok := types[fieldSchema.Reference]; ok {
-		return "*" + getStructName(fieldSchema.Reference, 1), true
-	}
+func getTypeForField(parentTypeKey string, fieldName string, fieldGoName string, fieldSchema *jsonschema.Schema, types map[string]*jsonschema.Schema, pointer bool) (typeName string, err error) {
+	majorType := fieldSchema.Type
+	subType := ""
 
-	// In the case that the field has properties, then its a complex type and will have a struct
-	// generated for it.
-	if len(fieldSchema.Properties) > 0 {
-		// The '*' is required because the field needs be a pointer to the type to be omitted when nil.
-		return "*" + getGolangName(fieldName), true
-	}
+	// Look up by named reference.
+	if fieldSchema.Reference != "" {
+		if t, ok := types[fieldSchema.Reference]; ok {
+			sn := getStructName(fieldSchema.Reference, t, 1)
 
-	// If the type is an object or array, what is it
-	// an array of?
-	subType := "interface{}"
-
-	// The items property lets us know.
-	if fieldSchema.Items != nil {
-		// There's a few choices.
-		// If there are properties, then a struct has been extracted and title used
-		// as the name.
-		if len(fieldSchema.Items.Properties) > 0 && fieldSchema.Items.Title != "" {
-			subType = fieldSchema.Items.Title
-		} else {
-			// If that's not set, use the Type property, because it's just a string, number etc.
-			if fieldSchema.Items.Type != "" {
-				subType = fieldSchema.Items.Type
-			}
+			majorType = "object"
+			subType = sn
 		}
 	}
 
-	if fieldSchema.Reference != "" {
-		subType = getStructName(fieldSchema.Reference, 1)
+	// Look up any embedded types.
+	if subType == "" && majorType == "object" {
+		if parentType, ok := types[parentTypeKey+"/properties/"+fieldName]; ok {
+			sn := getStructName(parentTypeKey+"/properties/"+fieldName, parentType, 1)
+
+			majorType = "object"
+			subType = sn
+		}
 	}
 
-	return getPrimitiveTypeName(fieldSchema.Type, subType)
+	// Find named array references.
+	if majorType == "array" {
+		s, _ := getTypeForField(parentTypeKey, fieldName, fieldGoName, fieldSchema.Items, types, false)
+		subType = s
+	}
+
+	name, err := getPrimitiveTypeName(majorType, subType, pointer)
+
+	if err != nil {
+		return name, fmt.Errorf("Failed to get the type for %s with error %s",
+			fieldGoName,
+			err.Error())
+	}
+
+	return name, nil
 }
 
-func getPrimitiveTypeName(schemaType string, subType string) (name string, ok bool) {
+func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name string, err error) {
 	switch schemaType {
 	case "array":
-		return "[]" + subType, true
+		if subType == "" {
+			return "error_creating_array", errors.New("can't create an array of an empty subtype")
+		}
+		return "[]" + subType, nil
 	case "boolean":
-		return "bool", true
+		return "bool", nil
 	case "integer":
-		return "int", true
+		return "int", nil
 	case "number":
-		return "float64", true
+		return "float64", nil
 	case "null":
-		return "nil", true
+		return "nil", nil
 	case "object":
-		return "*" + subType, true
+		if pointer {
+			return "*" + subType, nil
+		}
+
+		return subType, nil
 	case "string":
-		return "string", true
+		return "string", nil
 	}
 
-	return "undefined", false
+	return "undefined", fmt.Errorf("failed to get a primitive type for schemaType %s and subtype %s", schemaType, subType)
 }
 
 // getStructName makes a golang struct name from an input reference in the form of #/definitions/address
 // The parts refers to the number of segments from the end to take as the name.
-func getStructName(reference string, n int) string {
+func getStructName(reference string, structType *jsonschema.Schema, n int) string {
+	if reference == "#" {
+		rootName := structType.Title
+
+		if rootName == "" {
+			rootName = structType.Description
+		}
+
+		if rootName == "" {
+			rootName = "Root"
+		}
+
+		return getGolangName(rootName)
+	}
+
 	clean := strings.Replace(reference, "#/", "", -1)
 	parts := strings.Split(clean, "/")
 	partsToUse := parts[len(parts)-n:]
@@ -196,16 +229,41 @@ func getStructName(reference string, n int) string {
 
 // getGolangName strips invalid characters out of golang struct or field names.
 func getGolangName(s string) string {
-	stripped := removeAll(s, "_", " ")
+	buf := bytes.NewBuffer([]byte{})
 
-	return capitaliseFirstLetter(stripped)
+	for _, v := range splitOnAll(s, '_', ' ', '.') {
+		buf.WriteString(capitaliseFirstLetter(v))
+	}
+
+	return buf.String()
 }
 
-func removeAll(s string, remove ...string) string {
-	for _, r := range remove {
-		s = strings.Replace(s, r, "", -1)
+func splitOnAll(s string, splitItems ...rune) []string {
+	rv := []string{}
+
+	buf := bytes.NewBuffer([]byte{})
+	for _, c := range s {
+		if matches(c, splitItems) {
+			rv = append(rv, buf.String())
+			buf.Reset()
+		} else {
+			buf.WriteRune(c)
+		}
 	}
-	return s
+	if buf.Len() > 0 {
+		rv = append(rv, buf.String())
+	}
+
+	return rv
+}
+
+func matches(c rune, any []rune) bool {
+	for _, a := range any {
+		if a == c {
+			return true
+		}
+	}
+	return false
 }
 
 func capitaliseFirstLetter(s string) string {
