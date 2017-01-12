@@ -231,7 +231,7 @@ func getStructName(reference string, structType *jsonschema.Schema, n int) strin
 func getGolangName(s string) string {
 	buf := bytes.NewBuffer([]byte{})
 
-	for _, v := range splitOnAll(s, '_', ' ', '.') {
+	for _, v := range splitOnAll(s, '_', ' ', '.', '-') {
 		buf.WriteString(capitaliseFirstLetter(v))
 	}
 

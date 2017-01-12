@@ -357,3 +357,45 @@ func TestNestedArrayGeneration(t *testing.T) {
 		t.Errorf("Expected to find the Country field on the City struct, but didn't. The struct is %+v", cityStruct)
 	}
 }
+
+func TestThatJavascriptKeyNamesCanBeConvertedToValidGoNames(t *testing.T) {
+	tests := []struct {
+		description string
+		input       string
+		expected    string
+	}{
+		{
+			description: "Camel case is converted to pascal case.",
+			input:       "camelCase",
+			expected:    "CamelCase",
+		},
+		{
+			description: "Spaces are stripped.",
+			input:       "Contains space",
+			expected:    "ContainsSpace",
+		},
+		{
+			description: "Hyphens are stripped.",
+			input:       "key-name",
+			expected:    "KeyName",
+		},
+		{
+			description: "Underscores are stripped.",
+			input:       "key_name",
+			expected:    "KeyName",
+		},
+		{
+			description: "Periods are stripped.",
+			input:       "a.b.c",
+			expected:    "ABC",
+		},
+	}
+
+	for _, test := range tests {
+		actual := getGolangName(test.input)
+
+		if test.expected != actual {
+			t.Errorf("For test '%s', for input '%s' expected '%s' but got '%s'.", test.description, test.input, test.expected, actual)
+		}
+	}
+}
