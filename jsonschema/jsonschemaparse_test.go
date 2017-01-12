@@ -336,3 +336,45 @@ func TestThatReferencesCanBeListed(t *testing.T) {
 		t.Error("Couldn't find the reference to #/definitions/address")
 	}
 }
+
+func TestThatRequiredPropertiesAreIncludedInTheSchemaModel(t *testing.T) {
+	s := `{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "name": "Repository Configuration",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [ "name" ],
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "Repository name."
+        },
+        "repositories": {
+            "type": "string",
+            "description": "A set of additional repositories where packages can be found.",
+            "additionalProperties": true
+        }
+    }
+}`
+	so, err := Parse(s)
+
+	if err != nil {
+		t.Error("failed to parse the test JSON: ", err)
+	}
+
+	types := so.ExtractTypes()
+
+	if len(types) != 1 {
+		t.Errorf("Expected just the Repository Configuration type to be extracted, but got %d types extracted", len(types))
+	}
+
+	var rc *Schema
+	var ok bool
+	if rc, ok = types["#"]; !ok {
+		t.Fatalf("Couldn't find the reference to the Repository Configuration root type, the types found were %+v", getKeyNames(types))
+	}
+
+	if len(rc.Required) != 1 || rc.Required[0] != "name" {
+		t.Errorf("Expected the required field of the Repository Configuration type to contain a reference to 'name'.")
+	}
+}

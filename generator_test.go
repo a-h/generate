@@ -83,7 +83,8 @@ func TestFieldGeneration(t *testing.T) {
 		"#/definitions/address": &jsonschema.Schema{},
 	}
 
-	result, err := getFields("#", properties, lookupTypes)
+	requiredFields := []string{"property2"}
+	result, err := getFields("#", properties, lookupTypes, requiredFields)
 
 	if err != nil {
 		t.Error("Failed to get the fields: ", err)
@@ -93,8 +94,8 @@ func TestFieldGeneration(t *testing.T) {
 		t.Errorf("Expected 2 results, but got %d results", len(result))
 	}
 
-	testField(result["Property1"], "property1", "Property1", "string", t)
-	testField(result["Property2"], "property2", "Property2", "*Address", t)
+	testField(result["Property1"], "property1", "Property1", "string", false, t)
+	testField(result["Property2"], "property2", "Property2", "*Address", true, t)
 }
 
 func TestFieldGenerationWithArrayReferences(t *testing.T) {
@@ -112,7 +113,8 @@ func TestFieldGenerationWithArrayReferences(t *testing.T) {
 		"#/definitions/address": &jsonschema.Schema{},
 	}
 
-	result, err := getFields("#", properties, lookupTypes)
+	requiredFields := []string{"property2"}
+	result, err := getFields("#", properties, lookupTypes, requiredFields)
 
 	if err != nil {
 		t.Error("Failed to get the fields: ", err)
@@ -122,11 +124,11 @@ func TestFieldGenerationWithArrayReferences(t *testing.T) {
 		t.Errorf("Expected 2 results, but got %d results", len(result))
 	}
 
-	testField(result["Property1"], "property1", "Property1", "string", t)
-	testField(result["Property2"], "property2", "Property2", "[]Address", t)
+	testField(result["Property1"], "property1", "Property1", "string", false, t)
+	testField(result["Property2"], "property2", "Property2", "[]Address", true, t)
 }
 
-func testField(actual Field, expectedJSONName string, expectedName string, expectedType string, t *testing.T) {
+func testField(actual Field, expectedJSONName string, expectedName string, expectedType string, expectedToBeRequired bool, t *testing.T) {
 	if actual.JSONName != expectedJSONName {
 		t.Errorf("JSONName - expected %s, got %s", expectedJSONName, actual.JSONName)
 	}
@@ -135,6 +137,9 @@ func testField(actual Field, expectedJSONName string, expectedName string, expec
 	}
 	if actual.Type != expectedType {
 		t.Errorf("Type - expected %s, got %s", expectedType, actual.Type)
+	}
+	if actual.Required != expectedToBeRequired {
+		t.Errorf("Required - expected %v, got %v", expectedToBeRequired, actual.Required)
 	}
 }
 
@@ -191,15 +196,6 @@ func TestStructNameExtractor(t *testing.T) {
 	if !contains(names, "name2") {
 		t.Error("name2 was not extracted")
 	}
-}
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
 }
 
 func getStructNamesFromMap(m map[string]Struct) []string {

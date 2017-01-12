@@ -16,7 +16,8 @@ type Schema struct {
 	Properties  map[string]*Schema
 	Reference   string `json:"$ref"`
 	// Items represents the types that are permitted in the array.
-	Items *Schema `json:"items"`
+	Items    *Schema  `json:"items"`
+	Required []string `json:"required"`
 }
 
 // Parse parses a JSON schema from a string.

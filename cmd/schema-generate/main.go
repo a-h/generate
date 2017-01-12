@@ -93,7 +93,14 @@ func output(w io.Writer, structs map[string]generate.Struct) {
 
 		for _, fieldKey := range getOrderedFieldNames(s.Fields) {
 			f := s.Fields[fieldKey]
-			fmt.Fprintf(w, "  %s %s `json:\"%s,omitempty\"`\n", f.Name, f.Type, f.JSONName)
+
+			// Only apply omitempty if the field is not required.
+			omitempty := ",omitempty"
+			if f.Required {
+				omitempty = ""
+			}
+
+			fmt.Fprintf(w, "  %s %s `json:\"%s%s\"`\n", f.Name, f.Type, f.JSONName, omitempty)
 		}
 
 		fmt.Fprintln(w, "}")

@@ -35,7 +35,7 @@ func (g *Generator) CreateStructs() (structs map[string]Struct, err error) {
 	for _, typeKey := range getOrderedKeyNamesFromSchemaMap(types) {
 		v := types[typeKey]
 
-		fields, err := getFields(typeKey, v.Properties, types)
+		fields, err := getFields(typeKey, v.Properties, types, v.Required)
 
 		if err != nil {
 			errs = append(errs, err)
@@ -88,7 +88,7 @@ func getOrderedKeyNamesFromSchemaMap(m map[string]*jsonschema.Schema) []string {
 	return keys
 }
 
-func getFields(parentTypeKey string, properties map[string]*jsonschema.Schema, types map[string]*jsonschema.Schema) (field map[string]Field, err error) {
+func getFields(parentTypeKey string, properties map[string]*jsonschema.Schema, types map[string]*jsonschema.Schema, requiredFields []string) (field map[string]Field, err error) {
 	fields := map[string]Field{}
 
 	missingTypes := []string{}
@@ -109,7 +109,8 @@ func getFields(parentTypeKey string, properties map[string]*jsonschema.Schema, t
 			Name:     golangName,
 			JSONName: fieldName,
 			// Look up the types, try references first, then drop to the built-in types.
-			Type: tn,
+			Type:     tn,
+			Required: contains(requiredFields, fieldName),
 		}
 
 		fields[f.Name] = f
@@ -120,6 +121,15 @@ func getFields(parentTypeKey string, properties map[string]*jsonschema.Schema, t
 	}
 
 	return fields, nil
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
 func getTypeForField(parentTypeKey string, fieldName string, fieldGoName string, fieldSchema *jsonschema.Schema, types map[string]*jsonschema.Schema, pointer bool) (typeName string, err error) {
@@ -293,4 +303,6 @@ type Field struct {
 	JSONName string
 	// The golang type of the field, e.g. a built-in type like "string" or the name of a struct generated from the JSON schema.
 	Type string
+	// Required is set to true when the field is required.
+	Required bool
 }
