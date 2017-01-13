@@ -7,17 +7,37 @@ import (
 
 // Schema represents JSON schema.
 type Schema struct {
-	SchemaType  string `json:"$schema"`
-	Title       string `json:"title"`
-	ID          string `json:"id"`
-	Type        string `json:"type"`
-	Description string `json:"description"`
+	SchemaType  string      `json:"$schema"`
+	Title       string      `json:"title"`
+	ID          string      `json:"id"`
+	JSONType    interface{} `json:"type"`
+	Description string      `json:"description"`
 	Definitions map[string]*Schema
 	Properties  map[string]*Schema
 	Reference   string `json:"$ref"`
 	// Items represents the types that are permitted in the array.
 	Items    *Schema  `json:"items"`
 	Required []string `json:"required"`
+}
+
+// IsArray returns whether the schema type is an array.
+func (sc *Schema) IsArray() bool {
+	for _, v := range sc.Type() {
+		if v == "array" {
+			return true
+		}
+	}
+	return false
+}
+
+// Type gets the types for the schema.
+func (sc *Schema) Type() []string {
+	//TODO: Consider underlying type.
+	if s, ok := sc.JSONType.(string); ok {
+		return []string{s}
+	}
+
+	return sc.JSONType.([]string)
 }
 
 // Parse parses a JSON schema from a string.
@@ -37,16 +57,16 @@ func Parse(schema string) (*Schema, error) {
 }
 
 // ExtractTypes creates a map of defined types within the schema.
-func (s *Schema) ExtractTypes() map[string]*Schema {
+func (sc *Schema) ExtractTypes() map[string]*Schema {
 	types := make(map[string]*Schema)
 
-	addTypeAndChildrenToMap("#", "", s, types)
+	addTypeAndChildrenToMap("#", "", sc, types)
 
 	return types
 }
 
 func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[string]*Schema) {
-	if s.Type == "array" {
+	if s.IsArray() {
 		arrayTypeName := s.ID
 
 		// If there's no ID, try the title instead.

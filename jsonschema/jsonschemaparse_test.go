@@ -53,6 +53,9 @@ func TestThatPropertiesCanBeParsed(t *testing.T) {
             "name": {
                 "type": "string"
             },
+			"arrayOfTypes": {
+                "type": ["string", "nonsense"]
+            },
             "address": {
                 "$ref": "#/definitions/address"
             },
@@ -72,11 +75,19 @@ func TestThatPropertiesCanBeParsed(t *testing.T) {
 		expected string
 	}{
 		{
-			actual:   func() string { return so.Properties["name"].Type },
+			actual:   func() string { return so.Properties["name"].Type()[0] },
 			expected: "string",
 		},
 		{
-			actual:   func() string { return so.Properties["address"].Type },
+			actual:   func() string { return so.Properties["arrayOfTypes"].Type()[0] },
+			expected: "string",
+		},
+		{
+			actual:   func() string { return so.Properties["arrayOfTypes"].Type()[1] },
+			expected: "nonsense",
+		},
+		{
+			actual:   func() string { return so.Properties["address"].Type()[0] },
 			expected: "",
 		},
 		{
@@ -271,8 +282,8 @@ func TestThatArraysAreSupported(t *testing.T) {
 		t.Errorf("was expecting the Product to have 4 properties, but it had %d", len(ps.Properties))
 	}
 
-	if ps.Properties["tags"].Type != "array" {
-		t.Errorf("expected the 'Tags' property type to be array, but it was %s", ps.Properties["tags"].Type)
+	if !ps.Properties["tags"].IsArray() {
+		t.Errorf("expected the 'Tags' property type to be an array, but it was %s", ps.Properties["tags"].Type())
 	}
 }
 

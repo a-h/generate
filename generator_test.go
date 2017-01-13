@@ -148,9 +148,9 @@ func TestNestedStructGeneration(t *testing.T) {
 	root.Title = "Example"
 	root.Properties = map[string]*jsonschema.Schema{
 		"property1": &jsonschema.Schema{
-			Type: "object",
+			JSONType: []string{"object"},
 			Properties: map[string]*jsonschema.Schema{
-				"subproperty1": &jsonschema.Schema{Type: "string"},
+				"subproperty1": &jsonschema.Schema{JSONType: []string{"string"}},
 			},
 		},
 	}
