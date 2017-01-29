@@ -85,6 +85,10 @@ func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[stri
 			addTypeAndChildrenToMap(path+namePrefix+"/properties", k, d, types)
 		}
 	}
+
+	if s.Items != nil {
+		addTypeAndChildrenToMap(path, name, s.Items, types)
+	}
 }
 
 // ListReferences lists all of the references in a schema.
