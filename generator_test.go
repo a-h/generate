@@ -179,6 +179,39 @@ func TestNestedStructGeneration(t *testing.T) {
 	}
 }
 
+func TestEmptyNestedStructGeneration(t *testing.T) {
+	root := &jsonschema.Schema{}
+	root.Title = "Example"
+	root.Properties = map[string]*jsonschema.Schema{
+		"property1": &jsonschema.Schema{
+			Type: "object",
+		},
+	}
+
+	g := New(root)
+	results, err := g.CreateStructs()
+
+	if err != nil {
+		t.Error("Failed to create structs: ", err)
+	}
+
+	if len(results) != 2 {
+		t.Errorf("2 results should have been created, a root type and a type for the object 'property1' but %d structs were made", len(results))
+	}
+
+	if _, contains := results["Example"]; !contains {
+		t.Errorf("The Example type should have been made, but only types %s were made.", strings.Join(getStructNamesFromMap(results), ", "))
+	}
+
+	if _, contains := results["Property1"]; !contains {
+		t.Errorf("The Property1 type should have been made, but only types %s were made.", strings.Join(getStructNamesFromMap(results), ", "))
+	}
+
+	if results["Example"].Fields["Property1"].Type != "*Property1" {
+		t.Errorf("Expected that the nested type property1 is generated as a struct, so the property type should be *Property1, but was %s.", results["Example"].Fields["Property1"].Type)
+	}
+}
+
 func TestStructNameExtractor(t *testing.T) {
 	m := make(map[string]Struct)
 	m["name1"] = Struct{}
