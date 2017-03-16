@@ -428,3 +428,35 @@ func TestThatJavascriptKeyNamesCanBeConvertedToValidGoNames(t *testing.T) {
 		}
 	}
 }
+
+func TestThatArraysWithoutDefinedItemTypesAreGeneratedAsEmptyInterfaces(t *testing.T) {
+	root := &jsonschema.Schema{}
+	root.Title = "Array without defined item"
+	root.Properties = map[string]*jsonschema.Schema{
+		"name": &jsonschema.Schema{Type: "string"},
+		"repositories": &jsonschema.Schema{
+			Type: "array",
+		},
+	}
+
+	g := New(root)
+	results, err := g.CreateStructs()
+
+	if err != nil {
+		t.Errorf("Error generating structs: %v", err)
+	}
+
+	if _, contains := results["ArrayWithoutDefinedItem"]; !contains {
+		t.Errorf("The ArrayWithoutDefinedItem type should have been made, but only types %s were made.", strings.Join(getStructNamesFromMap(results), ", "))
+	}
+
+	if o, ok := results["ArrayWithoutDefinedItem"]; ok {
+		if f, ok := o.Fields["Repositories"]; ok {
+			if f.Type != "[]interface{}" {
+				t.Errorf("Since the schema doesn't include a type for the array items, the property type should be []interface{}, but was %s.", f.Type)
+			}
+		} else {
+			t.Errorf("Expected the ArrayWithoutDefinedItem type to have a Repostitories field, but none was found.")
+		}
+	}
+}

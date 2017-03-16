@@ -51,7 +51,9 @@ func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[stri
 
 		// If there's no ID, try the title instead.
 		if arrayTypeName == "" {
-			arrayTypeName = s.Items.Title
+			if s.Items != nil {
+				arrayTypeName = s.Items.Title
+			}
 		}
 
 		// If there's no title, use the property name to name the type we're creating.
@@ -59,7 +61,9 @@ func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[stri
 			arrayTypeName = name
 		}
 
-		addTypeAndChildrenToMap(path, arrayTypeName, s.Items, types)
+		if s.Items != nil {
+			addTypeAndChildrenToMap(path, arrayTypeName, s.Items, types)
+		}
 		return
 	}
 
