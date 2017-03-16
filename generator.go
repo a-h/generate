@@ -133,6 +133,10 @@ func contains(s []string, e string) bool {
 }
 
 func getTypeForField(parentTypeKey string, fieldName string, fieldGoName string, fieldSchema *jsonschema.Schema, types map[string]*jsonschema.Schema, pointer bool) (typeName string, err error) {
+	if fieldSchema == nil {
+		return "interface{}", nil
+	}
+
 	majorType := fieldSchema.Type
 	subType := ""
 

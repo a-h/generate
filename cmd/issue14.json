@@ -1,0 +1,18 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Array without defined item",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [ "name" ],
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "Repository name."
+        },
+        "repositories": {
+            "type": "array",
+            "description": "A set of additional repositories where packages can be found.",
+            "additionalProperties": true
+        }
+    }
+}
