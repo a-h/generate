@@ -2,6 +2,10 @@
 
 Generates Go (golang) Structs from JSON schema.
 
+# Requirements
+
+* Go 1.8+
+
 # Examples
 
 ```javascript
