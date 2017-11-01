@@ -131,6 +131,7 @@ func output(w io.Writer, structs map[string]generate.Struct) {
 		s := structs[k]
 
 		fmt.Fprintln(w, "")
+		fmt.Fprintf(w, "// %s %s\n", s.Name, s.Description)
 		fmt.Fprintf(w, "type %s struct {\n", s.Name)
 
 		for _, fieldKey := range getOrderedFieldNames(s.Fields) {
