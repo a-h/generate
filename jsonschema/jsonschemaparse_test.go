@@ -37,7 +37,7 @@ func TestThatTheRootSchemaCanBeParsed(t *testing.T) {
 	so, err := Parse(s)
 
 	if err != nil {
-		t.Error("It should be possible to deserialize a simple schema, but recived error ", err)
+		t.Error("It should be possible to deserialize a simple schema, but received error ", err)
 	}
 
 	if so.Title != "root" {
