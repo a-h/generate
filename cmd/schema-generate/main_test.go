@@ -13,8 +13,8 @@ import (
 
 func TestThatFieldNamesAreOrdered(t *testing.T) {
 	m := map[string]generate.Field{
-		"z": generate.Field{},
-		"b": generate.Field{},
+		"z": {},
+		"b": {},
 	}
 
 	actual := getOrderedFieldNames(m)
@@ -27,9 +27,9 @@ func TestThatFieldNamesAreOrdered(t *testing.T) {
 
 func TestThatStructNamesAreOrdered(t *testing.T) {
 	m := map[string]generate.Struct{
-		"c": generate.Struct{},
-		"b": generate.Struct{},
-		"a": generate.Struct{},
+		"c": {},
+		"b": {},
+		"a": {},
 	}
 
 	actual := getOrderedStructNames(m)
