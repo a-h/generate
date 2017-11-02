@@ -48,9 +48,10 @@ func (g *Generator) CreateStructs() (structs map[string]Struct, err error) {
 		}
 
 		s := Struct{
-			ID:     typeKey,
-			Name:   structName,
-			Fields: fields,
+			ID:          typeKey,
+			Name:        structName,
+			Description: v.Description,
+			Fields:      fields,
 		}
 
 		structs[s.Name] = s
@@ -295,8 +296,10 @@ type Struct struct {
 	// The ID within the JSON schema, e.g. #/definitions/address
 	ID string
 	// The golang name, e.g. "Address"
-	Name   string
-	Fields map[string]Field
+	Name string
+	// Description of the struct
+	Description string
+	Fields      map[string]Field
 }
 
 // Field defines the data required to generate a field in Go.
