@@ -157,11 +157,20 @@ func getTypeForField(parentTypeKey string, fieldName string, fieldGoName string,
 
 	// Look up any embedded types.
 	if subType == "" && majorType == "object" {
-		if parentType, ok := types[parentTypeKey+"/properties/"+fieldName]; ok {
+		if len(fieldSchema.Properties) == 0 && len(fieldSchema.AdditionalProperties) > 0 {
+			if len(fieldSchema.AdditionalProperties) == 1 {
+				sn, _ := getTypeForField(parentTypeKey, fieldName, fieldGoName, fieldSchema.AdditionalProperties[0], types, pointer)
+				subType = "map[string]" + sn
+				pointer = false
+			} else {
+				subType = "map[string]interface{}"
+				pointer = false
+			}
+		} else if parentType, ok := types[parentTypeKey+"/properties/"+fieldName]; ok {
 			sn := getStructName(parentTypeKey+"/properties/"+fieldName, parentType, 1)
-
-			majorType = "object"
 			subType = sn
+		} else {
+			subType = "undefined"
 		}
 	}
 
