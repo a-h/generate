@@ -54,6 +54,10 @@ func (g *Generator) CreateStructs() (structs map[string]Struct, err error) {
 			Fields:      fields,
 		}
 
+		if _, ok := structs[s.Name]; ok {
+			errs = append(errs, errors.New("Duplicate struct name : "+s.Name))
+		}
+
 		structs[s.Name] = s
 	}
 
@@ -237,6 +241,10 @@ func getStructName(reference string, structType *jsonschema.Schema, n int) strin
 
 	if result == "" {
 		return "Root"
+	}
+
+	if structType.NameCount > 1 {
+		result = fmt.Sprintf("%v%v", result, structType.NameCount)
 	}
 
 	return result
