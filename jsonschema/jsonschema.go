@@ -3,6 +3,7 @@ package jsonschema
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 )
 
 // Schema represents JSON schema.
@@ -16,8 +17,9 @@ type Schema struct {
 	Properties  map[string]*Schema
 	Reference   string `json:"$ref"`
 	// Items represents the types that are permitted in the array.
-	Items    *Schema  `json:"items"`
-	Required []string `json:"required"`
+	Items     *Schema  `json:"items"`
+	Required  []string `json:"required"`
+	NameCount int      `json:"-" `
 }
 
 // Parse parses a JSON schema from a string.
@@ -41,6 +43,14 @@ func (s *Schema) ExtractTypes() map[string]*Schema {
 	types := make(map[string]*Schema)
 
 	addTypeAndChildrenToMap("#", "", s, types)
+
+	counts := make(map[string]int)
+	for path, t := range types {
+		parts := strings.Split(path, "/")
+		name := parts[len(parts)-1]
+		counts[name] = counts[name] + 1
+		t.NameCount = counts[name]
+	}
 
 	return types
 }
