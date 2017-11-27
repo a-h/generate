@@ -211,39 +211,132 @@ func getKeyNames(m map[string]*Schema) []string {
 	return keys
 }
 
+func TestThatAdditionalPropertiesCanBeExtracted(t *testing.T) {
+	s := `{
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "id": "Example",
+        "properties": {
+            "subobject1": {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "string"
+                }
+            },
+            "subobject2": {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                        "x": { "type": "string" }
+                    }
+                }
+            },
+            "subobject3": {
+                "type": "object",
+                "additionalProperties": {
+                    "anyOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "x": { "type": "string" }
+                            }
+                        }
+                    ],
+                    "allOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "x": { "type": "string" }
+                            }
+                        }
+                    ],
+                    "oneOf": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "x": { "type": "string" }
+                            }
+                        }
+                    ],
+                    "not": [
+                        {
+                            "type": "object",
+                            "properties": {
+                                "x": { "type": "string" }
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    }`
+	so, err := Parse(s)
+
+	if err != nil {
+		t.Error("failed to parse the test JSON: ", err)
+	}
+
+	if len(so.Properties["subobject1"].AdditionalProperties) != 1 {
+		t.Error("expected 1 schemas in subobject3")
+	}
+
+	if len(so.Properties["subobject2"].AdditionalProperties) != 1 {
+		t.Error("expected 1 schemas in subobject3")
+	}
+
+	if len(so.Properties["subobject3"].AdditionalProperties) != 3 {
+		t.Error("expected 3 schemas in subobject3")
+	}
+
+	// Check that the types can be extracted into a map.
+	types := so.ExtractTypes()
+
+	if len(types) != 2 {
+		t.Errorf("expected 2 types, the example and subobject, but got %d types - %s", len(types),
+			strings.Join(getKeyNames(types), ", "))
+	}
+
+	// Check that the names of the types map to expected references.
+	if _, ok := types["#/properties/subobject2"]; !ok {
+		t.Errorf("was expecting to find the subobject2 type in the map under key #/properties/subobject3, available types were %s",
+			strings.Join(getKeyNames(types), ", "))
+	}
+}
+
 func TestThatArraysAreSupported(t *testing.T) {
 	s := `{
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "ProductSet",
-    "type": "array",
-    "items": {
-        "title": "Product",
-        "type": "object",
-        "properties": {
-            "id": {
-                "description": "The unique identifier for a product",
-                "type": "number"
-            },
-            "name": {
-                "type": "string"
-            },
-            "price": {
-                "type": "number",
-                "minimum": 0,
-                "exclusiveMinimum": true
-            },
-            "tags": {
-                "type": "array",
-                "items": {
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "title": "ProductSet",
+        "type": "array",
+        "items": {
+            "title": "Product",
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "The unique identifier for a product",
+                    "type": "number"
+                },
+                "name": {
                     "type": "string"
                 },
-                "minItems": 1,
-                "uniqueItems": true
-            }
-        },
-        "required": ["id", "name", "price"]
-    }
-}`
+                "price": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true
+                }
+            },
+            "required": ["id", "name", "price"]
+        }
+    }`
+
 	so, err := Parse(s)
 
 	if err != nil {

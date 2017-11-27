@@ -54,6 +54,10 @@ func (g *Generator) CreateStructs() (structs map[string]Struct, err error) {
 			Fields:      fields,
 		}
 
+		if _, ok := structs[s.Name]; ok {
+			errs = append(errs, errors.New("Duplicate struct name : "+s.Name))
+		}
+
 		structs[s.Name] = s
 	}
 
@@ -153,11 +157,20 @@ func getTypeForField(parentTypeKey string, fieldName string, fieldGoName string,
 
 	// Look up any embedded types.
 	if subType == "" && majorType == "object" {
-		if parentType, ok := types[parentTypeKey+"/properties/"+fieldName]; ok {
+		if len(fieldSchema.Properties) == 0 && len(fieldSchema.AdditionalProperties) > 0 {
+			if len(fieldSchema.AdditionalProperties) == 1 {
+				sn, _ := getTypeForField(parentTypeKey, fieldName, fieldGoName, fieldSchema.AdditionalProperties[0], types, pointer)
+				subType = "map[string]" + sn
+				pointer = false
+			} else {
+				subType = "map[string]interface{}"
+				pointer = false
+			}
+		} else if parentType, ok := types[parentTypeKey+"/properties/"+fieldName]; ok {
 			sn := getStructName(parentTypeKey+"/properties/"+fieldName, parentType, 1)
-
-			majorType = "object"
 			subType = sn
+		} else {
+			subType = "undefined"
 		}
 	}
 
@@ -237,6 +250,10 @@ func getStructName(reference string, structType *jsonschema.Schema, n int) strin
 
 	if result == "" {
 		return "Root"
+	}
+
+	if structType.NameCount > 1 {
+		result = fmt.Sprintf("%v%v", result, structType.NameCount)
 	}
 
 	return result
