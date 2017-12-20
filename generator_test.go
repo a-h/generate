@@ -449,6 +449,11 @@ func TestThatJavascriptKeyNamesCanBeConvertedToValidGoNames(t *testing.T) {
 			input:       "a.b.c",
 			expected:    "ABC",
 		},
+		{
+			description: "Colons are stripped.",
+			input:       "a:b",
+			expected:    "AB",
+		},
 	}
 
 	for _, test := range tests {
