@@ -1,6 +1,7 @@
 package generate
 
 import (
+	"net/url"
 	"strings"
 	"testing"
 
@@ -49,29 +50,29 @@ func TestThatStructsAreNamedWell(t *testing.T) {
 		expected string
 	}{
 		{
-			input:    "#/definitions/address",
+			input:    "/definitions/address",
 			expected: "Address",
 		},
 		{
-			input:    "#/Example",
+			input:    "/Example",
 			expected: "Example",
 		},
 		{
-			input:    "#/Example",
+			input:    "/Example",
 			expected: "Example",
 			schema: jsonschema.Schema{
 				NameCount: 1,
 			},
 		},
 		{
-			input:    "#/Example",
+			input:    "/Example",
 			expected: "Example2",
 			schema: jsonschema.Schema{
 				NameCount: 2,
 			},
 		},
 		{
-			input:    "#",
+			input:    "",
 			expected: "TheRootName",
 			schema: jsonschema.Schema{
 				Title: "TheRootName",
@@ -80,7 +81,7 @@ func TestThatStructsAreNamedWell(t *testing.T) {
 	}
 
 	for idx, test := range tests {
-		actual := getStructName(test.input, &test.schema, 1)
+		actual := getStructName(&url.URL{Fragment: test.input}, &test.schema, 1)
 		if actual != test.expected {
 			t.Errorf("Test %d failed: For input \"%s\", expected \"%s\", got \"%s\"", idx, test.input, test.expected, actual)
 		}
@@ -103,7 +104,7 @@ func TestFieldGeneration(t *testing.T) {
 	}
 
 	requiredFields := []string{"property2"}
-	result, err := getFields("#", properties, lookupTypes, requiredFields)
+	result, err := getFields(&url.URL{}, properties, lookupTypes, requiredFields)
 
 	if err != nil {
 		t.Error("Failed to get the fields: ", err)
@@ -144,7 +145,7 @@ func TestFieldGenerationWithArrayReferences(t *testing.T) {
 	}
 
 	requiredFields := []string{"property2"}
-	result, err := getFields("#", properties, lookupTypes, requiredFields)
+	result, err := getFields(&url.URL{}, properties, lookupTypes, requiredFields)
 
 	if err != nil {
 		t.Error("Failed to get the fields: ", err)
@@ -415,6 +416,43 @@ func TestNestedArrayGeneration(t *testing.T) {
 
 	if _, ok := cityStruct.Fields["Country"]; !ok {
 		t.Errorf("Expected to find the Country field on the City struct, but didn't. The struct is %+v", cityStruct)
+	}
+}
+
+func TestMultipleSchemaStructGeneration(t *testing.T) {
+	root1 := &jsonschema.Schema{
+		Title: "Root1Element",
+		ID:    "http://example.com/schema/root1",
+		Properties: map[string]*jsonschema.Schema{
+			"property1": {Reference: "root2#/definitions/address"},
+		},
+	}
+
+	root2 := &jsonschema.Schema{
+		Title: "Root2Element",
+		ID:    "http://example.com/schema/root2",
+		Properties: map[string]*jsonschema.Schema{
+			"property1": {Reference: "#/definitions/address"},
+		},
+		Definitions: map[string]*jsonschema.Schema{
+			"address": &jsonschema.Schema{
+				Properties: map[string]*jsonschema.Schema{
+					"address1": {Type: "string"},
+					"zip":      {Type: "number"},
+				},
+			},
+		},
+	}
+
+	g := New(root1, root2)
+	results, err := g.CreateStructs()
+
+	if err != nil {
+		t.Error("Failed to create structs: ", err)
+	}
+
+	if len(results) != 3 {
+		t.Errorf("3 results should have been created, 2 root types and an address, but got %v", getStructNamesFromMap(results))
 	}
 }
 

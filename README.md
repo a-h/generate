@@ -99,7 +99,7 @@ Generates Go (golang) Structs from JSON schema.
 Run this:
 
 ```bash
-go run main.go -i exampleschema.json
+go run main.go exampleschema.json
 ```
 
 Get this:
@@ -128,4 +128,3 @@ type Status struct {
   Favouritecat string `json:"favouritecat,omitempty"`
 }
 ```
-
