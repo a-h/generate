@@ -35,7 +35,7 @@ func main() {
 	if err != nil {
 		if jsonError, ok := err.(*json.SyntaxError); ok {
 			line, character, lcErr := lineAndCharacter(b, int(jsonError.Offset))
-			fmt.Fprintf(os.Stderr, "Cannot parse JSON schema due to a syntax error at line %d, character %d: %v\n", line, character, jsonError.Error())
+			fmt.Fprintf(os.Stderr, "Cannot parse JSON schema due to a syntax error at %s line %d, character %d: %v\n", *i, line, character, jsonError.Error())
 			if lcErr != nil {
 				fmt.Fprintf(os.Stderr, "Couldn't find the line and character position of the error due to error %v\n", lcErr)
 			}
@@ -43,13 +43,13 @@ func main() {
 		}
 		if jsonError, ok := err.(*json.UnmarshalTypeError); ok {
 			line, character, lcErr := lineAndCharacter(b, int(jsonError.Offset))
-			fmt.Fprintf(os.Stderr, "The JSON type '%v' cannot be converted into the Go '%v' type on struct '%s', field '%v'. See input file line %d, character %d\n", jsonError.Value, jsonError.Type.Name(), jsonError.Struct, jsonError.Field, line, character)
+			fmt.Fprintf(os.Stderr, "The JSON type '%v' cannot be converted into the Go '%v' type on struct '%s', field '%v'. See input file %s line %d, character %d\n", jsonError.Value, jsonError.Type.Name(), jsonError.Struct, jsonError.Field, *i, line, character)
 			if lcErr != nil {
 				fmt.Fprintf(os.Stderr, "Couldn't find the line and character position of the error due to error %v\n", lcErr)
 			}
 			return
 		}
-		fmt.Fprintln(os.Stderr, "Failed to parse the input JSON schema with error ", err)
+		fmt.Fprintf(os.Stderr, "Failed to parse the input JSON schema file %s with error %v\n", *i, err)
 		return
 	}
 
