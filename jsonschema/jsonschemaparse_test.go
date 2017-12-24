@@ -67,32 +67,22 @@ func TestThatPropertiesCanBeParsed(t *testing.T) {
 		t.Error("It was not possible to deserialize the schema with references with error ", err)
 	}
 
-	tests := []struct {
-		actual   func() string
-		expected string
-	}{
-		{
-			actual:   func() string { return so.Properties["name"].Type },
-			expected: "string",
-		},
-		{
-			actual:   func() string { return so.Properties["address"].Type },
-			expected: "",
-		},
-		{
-			actual:   func() string { return so.Properties["address"].Reference },
-			expected: "#/definitions/address",
-		},
-		{
-			actual:   func() string { return so.Properties["status"].Reference },
-			expected: "#/definitions/status",
-		},
+	nameType, nameMultiple := so.Properties["name"].Type()
+	if nameType != "string" || nameMultiple {
+		t.Errorf("expected property 'name' type to be 'string', but was '%v'", nameType)
 	}
 
-	for idx, test := range tests {
-		if test.actual() != test.expected {
-			t.Errorf("Expected %s but got %s for test %d", test.expected, test.actual(), idx)
-		}
+	addressType, _ := so.Properties["address"].Type()
+	if addressType != "" {
+		t.Errorf("expected property 'address' type to be '', but was '%v'", addressType)
+	}
+
+	if so.Properties["address"].Reference != "#/definitions/address" {
+		t.Errorf("expected property 'address' reference to be '#/definitions/address', but was '%v'", so.Properties["address"].Reference)
+	}
+
+	if so.Properties["status"].Reference != "#/definitions/status" {
+		t.Errorf("expected property 'status' reference to be '#/definitions/status', but was '%v'", so.Properties["status"].Reference)
 	}
 }
 
@@ -198,7 +188,7 @@ func TestThatNestedTypesCanBeExtracted(t *testing.T) {
 
 	// Check that the names of the types map to expected references.
 	if _, ok := types["#/properties/subobject"]; !ok {
-		t.Errorf("was expecting to find the subobject type in the map under key #/properties/subobject, available types were %s",
+		t.Errorf("was expecting to find the subobject type in the map under key #/properties/subobject, available types were '%s'",
 			strings.Join(getKeyNames(types), ", "))
 	}
 }
@@ -364,8 +354,9 @@ func TestThatArraysAreSupported(t *testing.T) {
 		t.Errorf("was expecting the Product to have 4 properties, but it had %d", len(ps.Properties))
 	}
 
-	if ps.Properties["tags"].Type != "array" {
-		t.Errorf("expected the 'Tags' property type to be array, but it was %s", ps.Properties["tags"].Type)
+	tagType, _ := ps.Properties["tags"].Type()
+	if tagType != "array" {
+		t.Errorf("expected the 'Tags' property type to be 'array', but it was %s", tagType)
 	}
 }
 
@@ -374,6 +365,14 @@ func TestThatReferencesCanBeListed(t *testing.T) {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "Product set",
     "type": "array",
+    "definitions": {
+        "address": {
+            "properties": {
+                "houseName": { "type": "string" },
+                "postcode": { "type": "string" }
+            }
+        }
+    },
     "items": {
         "title": "Product",
         "type": "object",
@@ -469,5 +468,40 @@ func TestThatRequiredPropertiesAreIncludedInTheSchemaModel(t *testing.T) {
 
 	if len(rc.Required) != 1 || rc.Required[0] != "name" {
 		t.Errorf("Expected the required field of the Repository Configuration type to contain a reference to 'name'.")
+	}
+}
+
+func TestThatPropertiesCanHaveMultipleTypes(t *testing.T) {
+	s := `{
+        "$schema": "http://json-schema.org/schema#",
+        "title": "root",
+        "properties": {
+            "name": {
+                "type": [ "integer", "string" ]
+            }
+        }
+    }`
+	so, err := Parse(s)
+
+	if err != nil {
+		t.Error("It was not possible to deserialize the schema with references with error ", err)
+	}
+
+	nameType, nameMultiple := so.Properties["name"].Type()
+	if nameType != "integer" {
+		t.Errorf("expected first value of property 'name' type to be 'integer', but was '%v'", nameType)
+	}
+
+	if !nameMultiple {
+		t.Errorf("expected multiple types, but only returned one")
+	}
+}
+
+func TestThatParsingInvalidValuesReturnsAnError(t *testing.T) {
+	s := `{ " }`
+	_, err := Parse(s)
+
+	if err == nil {
+		t.Error("expected a parsing error, but got nil")
 	}
 }
