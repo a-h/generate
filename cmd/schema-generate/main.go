@@ -98,7 +98,7 @@ func lineAndCharacter(bytes []byte, offset int) (line int, character int, err er
 	lf := byte(0x0A)
 
 	if offset > len(bytes) {
-		return 0, 0, fmt.Errorf("Couldn't find offset %d in bytes.", offset)
+		return 0, 0, fmt.Errorf("couldn't find offset %d in %d bytes", offset, len(bytes))
 	}
 
 	// Humans tend to count from 1.
@@ -115,7 +115,7 @@ func lineAndCharacter(bytes []byte, offset int) (line int, character int, err er
 		}
 	}
 
-	return 0, 0, fmt.Errorf("Couldn't find offset %d in bytes.", offset)
+	return 0, 0, fmt.Errorf("couldn't find offset %d in %d bytes", offset, len(bytes))
 }
 
 func getOrderedFieldNames(m map[string]generate.Field) []string {

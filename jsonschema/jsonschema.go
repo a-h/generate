@@ -6,8 +6,6 @@ import (
 	"strings"
 )
 
-type AdditionalProperties []*Schema
-
 // Schema represents JSON schema.
 type Schema struct {
 	SchemaType           string `json:"$schema"`
@@ -39,31 +37,6 @@ func Parse(schema string) (*Schema, error) {
 	}
 
 	return s, err
-}
-
-func (ap *AdditionalProperties) UnmarshalJSON(data []byte) error {
-	var b bool
-	if err := json.Unmarshal(data, &b); err == nil {
-		return nil
-	}
-
-	// support anyOf, allOf, oneOf
-	a := map[string][]*Schema{}
-	if err := json.Unmarshal(data, &a); err == nil {
-		for k, v := range a {
-			if k == "oneOf" || k == "allOf" || k == "anyOf" {
-				*ap = append(*ap, v...)
-			}
-		}
-		return nil
-	}
-
-	s := Schema{}
-	err := json.Unmarshal(data, &s)
-	if err == nil {
-		*ap = append(*ap, &s)
-	}
-	return err
 }
 
 // ExtractTypes creates a map of defined types within the schema.
@@ -166,4 +139,33 @@ func addReferencesToMap(s *Schema, m map[string]bool) {
 	if s.Items != nil {
 		addReferencesToMap(s.Items, m)
 	}
+}
+
+// AdditionalProperties handles additional properties present in the JSON schema.
+type AdditionalProperties []*Schema
+
+// UnmarshalJSON handles unmarshalling AdditionalProperties from JSON.
+func (ap *AdditionalProperties) UnmarshalJSON(data []byte) error {
+	var b bool
+	if err := json.Unmarshal(data, &b); err == nil {
+		return nil
+	}
+
+	// support anyOf, allOf, oneOf
+	a := map[string][]*Schema{}
+	if err := json.Unmarshal(data, &a); err == nil {
+		for k, v := range a {
+			if k == "oneOf" || k == "allOf" || k == "anyOf" {
+				*ap = append(*ap, v...)
+			}
+		}
+		return nil
+	}
+
+	s := Schema{}
+	err := json.Unmarshal(data, &s)
+	if err == nil {
+		*ap = append(*ap, &s)
+	}
+	return err
 }
