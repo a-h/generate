@@ -17,6 +17,7 @@ import (
 var (
 	o = flag.String("o", "", "The output file for the schema.")
 	p = flag.String("p", "main", "The package that the structs are created in.")
+	i = flag.String("i", "", "A single file path (used for backwards compatibility).")
 )
 
 func main() {
@@ -30,6 +31,9 @@ func main() {
 	flag.Parse()
 
 	inputFiles := flag.Args()
+	if *i != "" {
+		inputFiles = append(inputFiles, *i)
+	}
 	if len(inputFiles) == 0 {
 		fmt.Fprintln(os.Stderr, "No input JSON Schema files.")
 		os.Exit(1)
@@ -137,7 +141,6 @@ func getOrderedStructNames(m map[string]generate.Struct) []string {
 }
 
 func output(w io.Writer, structs map[string]generate.Struct) {
-	//TODO: Use templates.
 	fmt.Fprintf(w, "package %v\n", *p)
 
 	for _, k := range getOrderedStructNames(structs) {
