@@ -118,7 +118,8 @@ func getOrderedKeyNamesFromSchemaMap(m map[string]*jsonschema.Schema) []string {
 	return keys
 }
 
-func getFields(parentTypeKey *url.URL, properties map[string]*jsonschema.Schema, types map[string]*jsonschema.Schema, requiredFields []string) (field map[string]Field, err error) {
+func getFields(parentTypeKey *url.URL, properties map[string]*jsonschema.Schema,
+	types map[string]*jsonschema.Schema, requiredFields []string) (field map[string]Field, err error) {
 	fields := map[string]Field{}
 
 	missingTypes := []string{}
@@ -147,7 +148,8 @@ func getFields(parentTypeKey *url.URL, properties map[string]*jsonschema.Schema,
 	}
 
 	if len(missingTypes) > 0 {
-		return fields, fmt.Errorf("missing types for %s with errors %s", strings.Join(missingTypes, ","), joinErrors(errors))
+		return fields, fmt.Errorf("missing types for %s with errors %s",
+			strings.Join(missingTypes, ","), joinErrors(errors))
 	}
 
 	return fields, nil
@@ -162,13 +164,20 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName string, fieldSchema *jsonschema.Schema, types map[string]*jsonschema.Schema, pointer bool) (typeName string, err error) {
+func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName string,
+	fieldSchema *jsonschema.Schema, types map[string]*jsonschema.Schema, pointer bool) (typeName string, err error) {
+	// If there's no schema, or the field can be more than one type, we have to use interface{} and allow the caller to use type assertions to determine
+	// the actual underlying type.
 	if fieldSchema == nil {
 		return "interface{}", nil
 	}
 
-	majorType := fieldSchema.Type
-	subType := ""
+	majorType, multiple := fieldSchema.Type()
+	if multiple {
+		return "interface{}", nil
+	}
+
+	var subType string
 
 	// Look up by named reference.
 	if fieldSchema.Reference != "" {
@@ -193,7 +202,8 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 	if subType == "" && majorType == "object" {
 		if len(fieldSchema.Properties) == 0 && len(fieldSchema.AdditionalProperties) > 0 {
 			if len(fieldSchema.AdditionalProperties) == 1 {
-				sn, _ := getTypeForField(parentTypeKey, fieldName, fieldGoName, fieldSchema.AdditionalProperties[0], types, pointer)
+				sn, _ := getTypeForField(parentTypeKey, fieldName, fieldGoName,
+					fieldSchema.AdditionalProperties[0], types, pointer)
 				subType = "map[string]" + sn
 				pointer = false
 			} else {
@@ -263,7 +273,8 @@ func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name
 		return "string", nil
 	}
 
-	return "undefined", fmt.Errorf("failed to get a primitive type for schemaType %s and subtype %s", schemaType, subType)
+	return "undefined", fmt.Errorf("failed to get a primitive type for schemaType %s and subtype %s",
+		schemaType, subType)
 }
 
 // getStructName makes a golang struct name from an input reference in the form of #/definitions/address
@@ -371,7 +382,8 @@ type Field struct {
 	Name string
 	// The JSON name, e.g. "address1"
 	JSONName string
-	// The golang type of the field, e.g. a built-in type like "string" or the name of a struct generated from the JSON schema.
+	// The golang type of the field, e.g. a built-in type like "string" or the name of a struct generated
+	// from the JSON schema.
 	Type string
 	// Required is set to true when the field is required.
 	Required bool

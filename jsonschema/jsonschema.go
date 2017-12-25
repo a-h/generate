@@ -8,11 +8,11 @@ import (
 
 // Schema represents JSON schema.
 type Schema struct {
-	SchemaType           string `json:"$schema"`
-	Title                string `json:"title"`
-	ID                   string `json:"id"`
-	Type                 string `json:"type"`
-	Description          string `json:"description"`
+	SchemaType           string      `json:"$schema"`
+	Title                string      `json:"title"`
+	ID                   string      `json:"id"`
+	TypeValue            interface{} `json:"type"`
+	Description          string      `json:"description"`
 	Definitions          map[string]*Schema
 	Properties           map[string]*Schema
 	AdditionalProperties AdditionalProperties
@@ -21,6 +21,35 @@ type Schema struct {
 	Items     *Schema  `json:"items"`
 	Required  []string `json:"required"`
 	NameCount int      `json:"-" `
+}
+
+// Type returns the type which is permitted or an empty string if the type field is missing.
+// The 'type' field in JSON schema also allows for a single string value or an array of strings.
+// Examples:
+//   "a" => "a", false
+//   [] => "", false
+//   ["a"] => "a", false
+//   ["a", "b"] => "a", true
+func (s *Schema) Type() (firstOrDefault string, multiple bool) {
+	// We've got a single value, e.g. { "type": "object" }
+	if ts, ok := s.TypeValue.(string); ok {
+		firstOrDefault = ts
+		multiple = false
+		return
+	}
+
+	// We could have multiple types in the type value, e.g. { "type": [ "object", "array" ] }
+	if a, ok := s.TypeValue.([]interface{}); ok {
+		multiple = len(a) > 1
+		for _, n := range a {
+			if s, ok := n.(string); ok {
+				firstOrDefault = s
+				return
+			}
+		}
+	}
+
+	return "", multiple
 }
 
 // Parse parses a JSON schema from a string.
@@ -57,7 +86,13 @@ func (s *Schema) ExtractTypes() map[string]*Schema {
 }
 
 func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[string]*Schema) {
-	if s.Type == "array" {
+	t, multiple := s.Type()
+	if multiple {
+		// If we have more than one possible type for this field, the result is an interface{} in the struct definition.
+		return
+	}
+
+	if t == "array" {
 		arrayTypeName := s.ID
 
 		// If there's no ID, try the title instead.
@@ -93,7 +128,7 @@ func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[stri
 		return
 	}
 
-	if len(s.Properties) > 0 || s.Type == "object" {
+	if len(s.Properties) > 0 || t == "object" {
 		types[path+namePrefix] = s
 	}
 
@@ -109,7 +144,6 @@ func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[stri
 			addTypeAndChildrenToMap(path+namePrefix+"/properties", k, d, types)
 		}
 	}
-
 }
 
 // ListReferences lists all of the references in a schema.
