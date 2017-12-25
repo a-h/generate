@@ -23,7 +23,13 @@ type Schema struct {
 	NameCount int      `json:"-" `
 }
 
-// Type returns the types that are allowed in the field.
+// Type returns the type which is permitted or an empty string if the type field is missing.
+// The 'type' field in JSON schema also allows for a single string value or an array of strings.
+// Examples:
+//   "a" => "a", false
+//   [] => "", false
+//   ["a"] => "a", false
+//   ["a", "b"] => "a", true
 func (s *Schema) Type() (firstOrDefault string, multiple bool) {
 	// We've got a single value, e.g. { "type": "object" }
 	if ts, ok := s.TypeValue.(string); ok {
