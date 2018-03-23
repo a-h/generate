@@ -437,7 +437,7 @@ func TestMultipleSchemaStructGeneration(t *testing.T) {
 			"property1": {Reference: "#/definitions/address"},
 		},
 		Definitions: map[string]*jsonschema.Schema{
-			"address": &jsonschema.Schema{
+			"address": {
 				Properties: map[string]*jsonschema.Schema{
 					"address1": {TypeValue: "string"},
 					"zip":      {TypeValue: "number"},

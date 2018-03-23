@@ -1,3 +1,5 @@
+// The schema-generate binary reads the JSON schema files passed as arguments
+// and outputs the corresponding Go structs.
 package main
 
 import (
