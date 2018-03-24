@@ -1,3 +1,4 @@
+// Package generate creates Go structs from JSON schemas.
 package generate
 
 import (
@@ -194,7 +195,7 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 			majorType = "object"
 			subType = sn
 		} else {
-			return "", fmt.Errorf("Failed to resolve the reference %s", ref)
+			return "", fmt.Errorf("failed to resolve the reference %s", ref)
 		}
 	}
 
@@ -230,7 +231,7 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 	name, err := getPrimitiveTypeName(majorType, subType, pointer)
 
 	if err != nil {
-		return name, fmt.Errorf("Failed to get the type for %s with error %s",
+		return name, fmt.Errorf("failed to get the type for %s with error %s",
 			fieldGoName,
 			err.Error())
 	}

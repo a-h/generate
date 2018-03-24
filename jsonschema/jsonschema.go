@@ -1,3 +1,4 @@
+// Package jsonschema provides primitives for extracting data from JSON schemas.
 package jsonschema
 
 import (
