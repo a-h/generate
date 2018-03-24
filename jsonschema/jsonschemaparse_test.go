@@ -506,3 +506,30 @@ func TestThatParsingInvalidValuesReturnsAnError(t *testing.T) {
 		t.Error("expected a parsing error, but got nil")
 	}
 }
+
+func TestReturnedSchemaId(t *testing.T) {
+	tests := []struct {
+		input    *Schema
+		expected string
+	}{
+		{
+			input:    &Schema{},
+			expected: "",
+		},
+		{
+			input:    &Schema{ID06: "http://example.com/foo.json", ID04: "#foo"},
+			expected: "http://example.com/foo.json",
+		},
+		{
+			input:    &Schema{ID04: "#foo"},
+			expected: "#foo",
+		},
+	}
+
+	for idx, test := range tests {
+		actual := test.input.ID()
+		if actual != test.expected {
+			t.Errorf("Test %d failed: For input \"%+v\", expected \"%s\", got \"%s\"", idx, test.input, test.expected, actual)
+		}
+	}
+}
