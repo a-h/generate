@@ -46,7 +46,7 @@ func TestThatThePackageCanBeSet(t *testing.T) {
 
 	r, w := io.Pipe()
 
-	go output(w, make(map[string]generate.Struct))
+	go output(w, make(map[string]generate.Struct), make(map[string]generate.Field))
 
 	lr := io.LimitedReader{R: r, N: 72}
 	bs, _ := ioutil.ReadAll(&lr)

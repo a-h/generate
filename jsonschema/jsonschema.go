@@ -126,23 +126,24 @@ func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[stri
 		return
 	}
 
+	// Add root schemas composed only of a simple type
+	if !(t == "object" || t == "") && path == "#" {
+		types[path] = s
+	}
+
 	if t == "array" {
-		arrayTypeName := s.ID()
-
-		// If there's no ID, use the property name to name the type we're creating.
-		if arrayTypeName == "" {
-			arrayTypeName = name
-		}
-
 		if s.Items != nil {
-			addTypeAndChildrenToMap(path, arrayTypeName, s.Items, types)
+			if path == "#" {
+				path += "/arrayitems"
+			}
+			addTypeAndChildrenToMap(path, name, s.Items, types)
 		}
 		return
 	}
 
 	namePrefix := "/" + name
 	// Don't add the name into the root, or we end up with an extra slash.
-	if path == "#" && name == "" {
+	if (path == "#" || path == "#/arrayitems") && name == "" {
 		namePrefix = ""
 	}
 

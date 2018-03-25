@@ -83,7 +83,7 @@ func TestThatStructsAreNamedWell(t *testing.T) {
 	}
 
 	for idx, test := range tests {
-		actual := getStructName(&url.URL{Fragment: test.input}, &test.schema, 1)
+		actual := getTypeName(&url.URL{Fragment: test.input}, &test.schema, 1)
 		if actual != test.expected {
 			t.Errorf("Test %d failed: For input \"%s\", expected \"%s\", got \"%s\"", idx, test.input, test.expected, actual)
 		}
@@ -190,7 +190,7 @@ func TestNestedStructGeneration(t *testing.T) {
 	}
 
 	g := New(root)
-	results, err := g.CreateStructs()
+	results, _, err := g.CreateTypes()
 
 	if err != nil {
 		t.Error("Failed to create structs: ", err)
@@ -223,7 +223,7 @@ func TestEmptyNestedStructGeneration(t *testing.T) {
 	}
 
 	g := New(root)
-	results, err := g.CreateStructs()
+	results, _, err := g.CreateTypes()
 
 	if err != nil {
 		t.Error("Failed to create structs: ", err)
@@ -291,7 +291,7 @@ func TestStructGeneration(t *testing.T) {
 	}
 
 	g := New(root)
-	results, err := g.CreateStructs()
+	results, _, err := g.CreateTypes()
 
 	if err != nil {
 		t.Error("Failed to create structs: ", err)
@@ -317,10 +317,10 @@ func TestArrayGeneration(t *testing.T) {
 	}
 
 	g := New(root)
-	results, err := g.CreateStructs()
+	results, _, err := g.CreateTypes()
 
 	if err != nil {
-		t.Error("Failed to create structs: ", err)
+		t.Fatal("Failed to create structs: ", err)
 	}
 
 	if len(results) != 1 {
@@ -328,7 +328,6 @@ func TestArrayGeneration(t *testing.T) {
 	}
 
 	artistStruct, ok := results["Artist"]
-
 	if !ok {
 		t.Errorf("Expected Name to be Artist, that wasn't found, but the struct contains \"%+v\"", results)
 	}
@@ -371,7 +370,7 @@ func TestNestedArrayGeneration(t *testing.T) {
 	}
 
 	g := New(root)
-	results, err := g.CreateStructs()
+	results, _, err := g.CreateTypes()
 
 	if err != nil {
 		t.Error("Failed to create structs: ", err)
@@ -447,7 +446,7 @@ func TestMultipleSchemaStructGeneration(t *testing.T) {
 	}
 
 	g := New(root1, root2)
-	results, err := g.CreateStructs()
+	results, _, err := g.CreateTypes()
 
 	if err != nil {
 		t.Error("Failed to create structs: ", err)
@@ -516,7 +515,7 @@ func TestThatArraysWithoutDefinedItemTypesAreGeneratedAsEmptyInterfaces(t *testi
 	}
 
 	g := New(root)
-	results, err := g.CreateStructs()
+	results, _, err := g.CreateTypes()
 
 	if err != nil {
 		t.Errorf("Error generating structs: %v", err)
@@ -545,7 +544,7 @@ func TestThatTypesWithMultipleDefinitionsAreGeneratedAsEmptyInterfaces(t *testin
 	}
 
 	g := New(root)
-	results, err := g.CreateStructs()
+	results, _, err := g.CreateTypes()
 
 	if err != nil {
 		t.Errorf("Error generating structs: %v", err)
@@ -620,6 +619,120 @@ func TestThatUnmarshallingIsPossible(t *testing.T) {
 		actualType := reflect.TypeOf(actual.Name)
 		if expectedType != actualType {
 			t.Errorf("expected Name to be of type %v, but got %v", expectedType, actualType)
+		}
+	}
+}
+
+func TestThatRootTypeKeyIsCorrectlyAssessed(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{
+			name:     "URL without fragment",
+			input:    "http://example.com/schema",
+			expected: true,
+		},
+		{
+			name:     "URL with fragment",
+			input:    "http://example.com/schema#/definitions/foo",
+			expected: false,
+		},
+		{
+			name:     "simple ID without fragment",
+			input:    "/Test",
+			expected: true,
+		},
+		{
+			name:     "simple ID with fragment",
+			input:    "/Test#/definitions/foo",
+			expected: false,
+		},
+		{
+			name:     "no ID",
+			input:    "#",
+			expected: true,
+		},
+		{
+			name:     "empty",
+			input:    "",
+			expected: true,
+		},
+	}
+
+	for _, test := range tests {
+		key, err := url.Parse(test.input)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		actual := isRootSchemaKey(key)
+		if actual != test.expected {
+			t.Errorf("Test %q failed: for input %q, expected %t, got %t", test.name, test.input, test.expected, actual)
+		}
+	}
+}
+
+func TestTypeAliases(t *testing.T) {
+	tests := []struct {
+		gotype           string
+		input            *jsonschema.Schema
+		structs, aliases int
+	}{
+		{
+			gotype:  "string",
+			input:   &jsonschema.Schema{TypeValue: "string"},
+			structs: 0,
+			aliases: 1,
+		},
+		{
+			gotype:  "int",
+			input:   &jsonschema.Schema{TypeValue: "integer"},
+			structs: 0,
+			aliases: 1,
+		},
+		{
+			gotype:  "bool",
+			input:   &jsonschema.Schema{TypeValue: "boolean"},
+			structs: 0,
+			aliases: 1,
+		},
+		{
+			gotype: "[]Foo",
+			input: &jsonschema.Schema{TypeValue: "array",
+				Items: &jsonschema.Schema{
+					TypeValue: "object",
+					Title:     "foo",
+				}},
+			structs: 1,
+			aliases: 1,
+		},
+		{
+			gotype:  "[]interface{}",
+			input:   &jsonschema.Schema{TypeValue: "array"},
+			structs: 0,
+			aliases: 1,
+		},
+	}
+
+	for _, test := range tests {
+		g := New(test.input)
+		structs, aliases, err := g.CreateTypes()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if len(structs) != test.structs {
+			t.Errorf("Expected %d structs, got %d", test.structs, len(structs))
+		}
+
+		if len(aliases) != test.aliases {
+			t.Errorf("Expected %d type aliases, got %d", test.aliases, len(aliases))
+		}
+
+		if test.gotype != aliases["Root"].Type {
+			t.Errorf("Expected Root type %q, got %q", test.gotype, aliases["Root"].Type)
 		}
 	}
 }

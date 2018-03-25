@@ -3,13 +3,12 @@ package generate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/url"
 	"path"
 	"sort"
 	"strings"
-
-	"errors"
 
 	"github.com/a-h/generate/jsonschema"
 )
@@ -26,14 +25,14 @@ func New(schemas ...*jsonschema.Schema) *Generator {
 	}
 }
 
-// CreateStructs creates structs from the JSON schemas, keyed by the golang name.
-func (g *Generator) CreateStructs() (structs map[string]Struct, err error) {
+// CreateTypes creates types from the JSON schemas, keyed by the golang name.
+func (g *Generator) CreateTypes() (structs map[string]Struct, aliases map[string]Field, err error) {
 	schemaIDs := make([]*url.URL, len(g.schemas))
 	for i, schema := range g.schemas {
 		if schema.ID() != "" {
 			schemaIDs[i], err = url.Parse(schema.ID())
 			if err != nil {
-				return nil, err
+				return
 			}
 		}
 	}
@@ -52,46 +51,91 @@ func (g *Generator) CreateStructs() (structs map[string]Struct, err error) {
 	}
 
 	structs = make(map[string]Struct)
+	aliases = make(map[string]Field)
 	errs := []error{}
 
 	for _, typeKey := range getOrderedKeyNamesFromSchemaMap(types) {
 		v := types[typeKey]
 
-		typeKeyURI, err := url.Parse(typeKey)
-		if err != nil {
-			errs = append(errs, err)
+		if v.TypeValue == "object" || v.TypeValue == nil {
+			s, errtype := createStruct(typeKey, v, types)
+			if errtype != nil {
+				errs = append(errs, errtype...)
+			}
+
+			if _, ok := structs[s.Name]; ok {
+				errs = append(errs, errors.New("Duplicate struct name : "+s.Name))
+			}
+
+			structs[s.Name] = s
+		} else {
+			a, errtype := createAlias(typeKey, v, types)
+			if errtype != nil {
+				errs = append(errs, errtype...)
+			}
+
+			aliases[a.Name] = a
 		}
-		fields, err := getFields(typeKeyURI, v.Properties, types, v.Required)
-
-		if err != nil {
-			errs = append(errs, err)
-		}
-
-		structName := getStructName(typeKeyURI, v, 1)
-
-		if err != nil {
-			errs = append(errs, err)
-		}
-
-		s := Struct{
-			ID:          typeKey,
-			Name:        structName,
-			Description: v.Description,
-			Fields:      fields,
-		}
-
-		if _, ok := structs[s.Name]; ok {
-			errs = append(errs, errors.New("Duplicate struct name : "+s.Name))
-		}
-
-		structs[s.Name] = s
 	}
 
 	if len(errs) > 0 {
-		return structs, errors.New(joinErrors(errs))
+		err = errors.New(joinErrors(errs))
+	}
+	return
+}
+
+// createStruct creates a struct type from the JSON schema.
+func createStruct(typeKey string, schema *jsonschema.Schema, types map[string]*jsonschema.Schema) (s Struct, errs []error) {
+	typeKeyURI, err := url.Parse(typeKey)
+	if err != nil {
+		errs = append(errs, err)
 	}
 
-	return structs, nil
+	fields, err := getFields(typeKeyURI, schema.Properties, types, schema.Required)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	structName := getTypeName(typeKeyURI, schema, 1)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	s = Struct{
+		ID:          typeKey,
+		Name:        structName,
+		Description: schema.Description,
+		Fields:      fields,
+	}
+
+	return
+}
+
+// createAlias creates a simple alias type from the JSON schema.
+func createAlias(typeKey string, schema *jsonschema.Schema, types map[string]*jsonschema.Schema) (a Field, errs []error) {
+	typeKeyURI, err := url.Parse(typeKey)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	aliasName := getTypeName(typeKeyURI, schema, 1)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	tn, err := getTypeForField(typeKeyURI, typeKey, aliasName, schema, types, true)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	a = Field{
+		Name:     aliasName,
+		JSONName: "",
+		Type:     tn,
+		Required: false,
+	}
+
+	return
 }
 
 func joinErrors(errs []error) string {
@@ -190,7 +234,7 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 		ref = parentTypeKey.ResolveReference(ref)
 
 		if t, ok := types[ref.String()]; ok {
-			sn := getStructName(ref, t, 1)
+			sn := getTypeName(ref, t, 1)
 
 			majorType = "object"
 			subType = sn
@@ -200,7 +244,7 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 	}
 
 	// Look up any embedded types.
-	if subType == "" && majorType == "object" {
+	if subType == "" && (majorType == "object" || majorType == "") {
 		if len(fieldSchema.Properties) == 0 && len(fieldSchema.AdditionalProperties) > 0 {
 			if len(fieldSchema.AdditionalProperties) == 1 {
 				sn, _ := getTypeForField(parentTypeKey, fieldName, fieldGoName,
@@ -213,8 +257,14 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 			}
 		} else {
 			ref := joinURLFragmentPath(parentTypeKey, "properties/"+fieldName)
+
+			// Root schema without properties, try array item instead
+			if _, ok := types[ref.String()]; !ok && isRootSchemaKey(parentTypeKey) {
+				ref = joinURLFragmentPath(parentTypeKey, "arrayitems")
+			}
+
 			if parentType, ok := types[ref.String()]; ok {
-				sn := getStructName(ref, parentType, 1)
+				sn := getTypeName(ref, parentType, 1)
 				subType = sn
 			} else {
 				subType = "undefined"
@@ -237,6 +287,11 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 	}
 
 	return name, nil
+}
+
+// isRootSchemaKey returns whether a given type key references the root schema.
+func isRootSchemaKey(typeKey *url.URL) bool {
+	return typeKey.Fragment == ""
 }
 
 // joinURLFragmentPath joins elem onto u.Fragment, adding a separating slash.
@@ -278,14 +333,14 @@ func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name
 		schemaType, subType)
 }
 
-// getStructName makes a golang struct name from an input reference in the form of #/definitions/address
+// getTypeName makes a golang type name from an input reference in the form of #/definitions/address
 // The parts refers to the number of segments from the end to take as the name.
-func getStructName(reference *url.URL, structType *jsonschema.Schema, n int) string {
+func getTypeName(reference *url.URL, structType *jsonschema.Schema, n int) string {
 	if len(structType.Title) > 0 {
 		return getGolangName(structType.Title)
 	}
 
-	if reference.Fragment == "" {
+	if isRootSchemaKey(reference) {
 		rootName := structType.Title
 
 		if rootName == "" {
