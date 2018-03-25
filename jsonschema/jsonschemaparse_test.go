@@ -1,7 +1,6 @@
 package jsonschema
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 )
@@ -336,27 +335,29 @@ func TestThatArraysAreSupported(t *testing.T) {
 	// Check that the types can be extracted into a map.
 	types := so.ExtractTypes()
 
-	fmt.Printf("Types: %+v\n", types)
-
 	if len(types) != 1 {
 		t.Errorf("expected 1 type, just the Product, but got %d types - %s", len(types),
 			strings.Join(getKeyNames(types), ", "))
 	}
 
-	// Check that the names of the types map to expected references.
-	ps, ok := types["#/Product"]
+	// Check that the path of the types map to expected references.
+	ps, ok := types["#"]
 	if !ok {
-		t.Fatalf("was expecting to find the Product type but available types were %s",
+		t.Fatalf("Expected to find the '#' schema path, but available paths were %s",
 			strings.Join(getKeyNames(types), ", "))
 	}
 
+	if ps.Title != "Product" {
+		t.Errorf("Expected the root schema's title to be 'Product', but it was %s", ps.Title)
+	}
+
 	if len(ps.Properties) != 4 {
-		t.Errorf("was expecting the Product to have 4 properties, but it had %d", len(ps.Properties))
+		t.Errorf("Expected the Product schema to have 4 properties, but it had %d", len(ps.Properties))
 	}
 
 	tagType, _ := ps.Properties["tags"].Type()
 	if tagType != "array" {
-		t.Errorf("expected the 'Tags' property type to be 'array', but it was %s", tagType)
+		t.Errorf("Expected the Tags property type to be 'array', but it was %s", tagType)
 	}
 }
 
