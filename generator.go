@@ -281,6 +281,10 @@ func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name
 // getStructName makes a golang struct name from an input reference in the form of #/definitions/address
 // The parts refers to the number of segments from the end to take as the name.
 func getStructName(reference *url.URL, structType *jsonschema.Schema, n int) string {
+	if len(structType.Title) > 0 {
+		return getGolangName(structType.Title)
+	}
+
 	if reference.Fragment == "" {
 		rootName := structType.Title
 
