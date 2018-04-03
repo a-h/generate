@@ -224,7 +224,7 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 
 	// Find named array references.
 	if majorType == "array" {
-		s, _ := getTypeForField(parentTypeKey, fieldName, fieldGoName, fieldSchema.Items, types, false)
+		s, _ := getTypeForField(parentTypeKey, fieldName, fieldGoName, fieldSchema.Items, types, true)
 		subType = s
 	}
 
@@ -268,7 +268,6 @@ func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name
 		if pointer {
 			return "*" + subType, nil
 		}
-
 		return subType, nil
 	case "string":
 		return "string", nil
