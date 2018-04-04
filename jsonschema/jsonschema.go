@@ -9,19 +9,52 @@ import (
 
 // Schema represents JSON schema.
 type Schema struct {
-	SchemaType           string      `json:"$schema"`
-	Title                string      `json:"title"`
-	ID                   string      `json:"id"`
-	TypeValue            interface{} `json:"type"`
-	Description          string      `json:"description"`
-	Definitions          map[string]*Schema
+	// SchemaType identifies the schema version.
+	// http://json-schema.org/draft-07/json-schema-core.html#rfc.section.7
+	SchemaType string `json:"$schema"`
+
+	// ID{04,06} is the schema URI identifier.
+	// http://json-schema.org/draft-07/json-schema-core.html#rfc.section.9
+	ID04 string `json:"id"`  // up to draft-04
+	ID06 string `json:"$id"` // from draft-06 onwards
+
+	// Title and Description state the intent of the schema.
+	Title       string
+	Description string
+
+	// TypeValue is the schema instance type.
+	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.1.1
+	TypeValue interface{} `json:"type"`
+
+	// Definitions are inline re-usable schemas.
+	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.9
+	Definitions map[string]*Schema
+
+	// Properties, Required and AdditionalProperties describe an object's child instances.
+	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.5
 	Properties           map[string]*Schema
+	Required             []string
 	AdditionalProperties AdditionalProperties
-	Reference            string `json:"$ref"`
+
+	// Reference is a URI reference to a schema.
+	// http://json-schema.org/draft-07/json-schema-core.html#rfc.section.8
+	Reference string `json:"$ref"`
+
 	// Items represents the types that are permitted in the array.
-	Items     *Schema  `json:"items"`
-	Required  []string `json:"required"`
-	NameCount int      `json:"-" `
+	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.4
+	Items *Schema
+
+	// NameCount is the number of times the instance name was encountered accross the schema.
+	NameCount int `json:"-" `
+}
+
+// ID returns the schema URI id.
+func (s *Schema) ID() string {
+	// prefer "$id" over "id"
+	if s.ID06 == "" && s.ID04 != "" {
+		return s.ID04
+	}
+	return s.ID06
 }
 
 // Type returns the type which is permitted or an empty string if the type field is missing.
@@ -94,7 +127,7 @@ func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[stri
 	}
 
 	if t == "array" {
-		arrayTypeName := s.ID
+		arrayTypeName := s.ID()
 
 		// If there's no ID, use the property name to name the type we're creating.
 		if arrayTypeName == "" {

@@ -30,8 +30,8 @@ func New(schemas ...*jsonschema.Schema) *Generator {
 func (g *Generator) CreateStructs() (structs map[string]Struct, err error) {
 	schemaIDs := make([]*url.URL, len(g.schemas))
 	for i, schema := range g.schemas {
-		if schema.ID != "" {
-			schemaIDs[i], err = url.Parse(schema.ID)
+		if schema.ID() != "" {
+			schemaIDs[i], err = url.Parse(schema.ID())
 			if err != nil {
 				return nil, err
 			}

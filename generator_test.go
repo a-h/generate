@@ -424,7 +424,7 @@ func TestNestedArrayGeneration(t *testing.T) {
 func TestMultipleSchemaStructGeneration(t *testing.T) {
 	root1 := &jsonschema.Schema{
 		Title: "Root1Element",
-		ID:    "http://example.com/schema/root1",
+		ID06:  "http://example.com/schema/root1",
 		Properties: map[string]*jsonschema.Schema{
 			"property1": {Reference: "root2#/definitions/address"},
 		},
@@ -432,7 +432,7 @@ func TestMultipleSchemaStructGeneration(t *testing.T) {
 
 	root2 := &jsonschema.Schema{
 		Title: "Root2Element",
-		ID:    "http://example.com/schema/root2",
+		ID06:  "http://example.com/schema/root2",
 		Properties: map[string]*jsonschema.Schema{
 			"property1": {Reference: "#/definitions/address"},
 		},
