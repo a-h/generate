@@ -355,7 +355,8 @@ func TestNestedArrayGeneration(t *testing.T) {
 			"cities": {
 				TypeValue: "array",
 				Items: &jsonschema.Schema{
-					Title: "City",
+					Title:     "City",
+					TypeValue: "object",
 					Properties: map[string]*jsonschema.Schema{
 						"name":    {TypeValue: "string"},
 						"country": {TypeValue: "string"},
@@ -381,7 +382,6 @@ func TestNestedArrayGeneration(t *testing.T) {
 	}
 
 	fbStruct, ok := results["FavouriteBars"]
-
 	if !ok {
 		t.Errorf("FavouriteBars struct was not found. The results were %+v", results)
 	}
@@ -390,24 +390,24 @@ func TestNestedArrayGeneration(t *testing.T) {
 		t.Errorf("Expected to find the BarName field, but didn't. The struct is %+v", fbStruct)
 	}
 
-	if f, ok := fbStruct.Fields["Cities"]; !ok {
+	f, ok := fbStruct.Fields["Cities"]
+	if !ok {
 		t.Errorf("Expected to find the Cities field on the FavouriteBars, but didn't. The struct is %+v", fbStruct)
-
-		if f.Type != "City" {
-			t.Errorf("Expected to find that the Cities array was of type City, but it was of %s", f.Type)
-		}
+	}
+	if f.Type != "[]City" {
+		t.Errorf("Expected to find that the Cities array was of type City, but it was of %s", f.Type)
 	}
 
-	if f, ok := fbStruct.Fields["Tags"]; !ok {
+	f, ok = fbStruct.Fields["Tags"]
+	if !ok {
 		t.Errorf("Expected to find the Tags field on the FavouriteBars, but didn't. The struct is %+v", fbStruct)
+	}
 
-		if f.Type != "array" {
-			t.Errorf("Expected to find that the Tags array was of type array, but it was of %s", f.Type)
-		}
+	if f.Type != "[]string" {
+		t.Errorf("Expected to find that the Tags array was of type string, but it was of %s", f.Type)
 	}
 
 	cityStruct, ok := results["City"]
-
 	if !ok {
 		t.Error("City struct was not found.")
 	}
@@ -424,7 +424,7 @@ func TestNestedArrayGeneration(t *testing.T) {
 func TestMultipleSchemaStructGeneration(t *testing.T) {
 	root1 := &jsonschema.Schema{
 		Title: "Root1Element",
-		ID:    "http://example.com/schema/root1",
+		ID06:  "http://example.com/schema/root1",
 		Properties: map[string]*jsonschema.Schema{
 			"property1": {Reference: "root2#/definitions/address"},
 		},
@@ -432,12 +432,12 @@ func TestMultipleSchemaStructGeneration(t *testing.T) {
 
 	root2 := &jsonschema.Schema{
 		Title: "Root2Element",
-		ID:    "http://example.com/schema/root2",
+		ID06:  "http://example.com/schema/root2",
 		Properties: map[string]*jsonschema.Schema{
 			"property1": {Reference: "#/definitions/address"},
 		},
 		Definitions: map[string]*jsonschema.Schema{
-			"address": &jsonschema.Schema{
+			"address": {
 				Properties: map[string]*jsonschema.Schema{
 					"address1": {TypeValue: "string"},
 					"zip":      {TypeValue: "number"},

@@ -1,3 +1,4 @@
+// Package generate creates Go structs from JSON schemas.
 package generate
 
 import (
@@ -29,8 +30,8 @@ func New(schemas ...*jsonschema.Schema) *Generator {
 func (g *Generator) CreateStructs() (structs map[string]Struct, err error) {
 	schemaIDs := make([]*url.URL, len(g.schemas))
 	for i, schema := range g.schemas {
-		if schema.ID != "" {
-			schemaIDs[i], err = url.Parse(schema.ID)
+		if schema.ID() != "" {
+			schemaIDs[i], err = url.Parse(schema.ID())
 			if err != nil {
 				return nil, err
 			}
@@ -194,7 +195,7 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 			majorType = "object"
 			subType = sn
 		} else {
-			return "", fmt.Errorf("Failed to resolve the reference %s", ref)
+			return "", fmt.Errorf("failed to resolve the reference %s", ref)
 		}
 	}
 
@@ -230,7 +231,7 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 	name, err := getPrimitiveTypeName(majorType, subType, pointer)
 
 	if err != nil {
-		return name, fmt.Errorf("Failed to get the type for %s with error %s",
+		return name, fmt.Errorf("failed to get the type for %s with error %s",
 			fieldGoName,
 			err.Error())
 	}
@@ -280,6 +281,10 @@ func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name
 // getStructName makes a golang struct name from an input reference in the form of #/definitions/address
 // The parts refers to the number of segments from the end to take as the name.
 func getStructName(reference *url.URL, structType *jsonschema.Schema, n int) string {
+	if len(structType.Title) > 0 {
+		return getGolangName(structType.Title)
+	}
+
 	if reference.Fragment == "" {
 		rootName := structType.Title
 

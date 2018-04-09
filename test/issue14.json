@@ -1,9 +1,11 @@
 {
-    "$schema": "http://json-schema.org/draft-04/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "Array without defined item",
     "type": "object",
     "additionalProperties": false,
-    "required": [ "name" ],
+    "required": [
+        "name"
+    ],
     "properties": {
         "name": {
             "type": "string",

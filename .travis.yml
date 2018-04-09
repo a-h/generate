@@ -1,0 +1,7 @@
+language: go
+
+go_import_path: github.com/a-h/generate
+
+script:
+  - make codecheck
+  - make test
