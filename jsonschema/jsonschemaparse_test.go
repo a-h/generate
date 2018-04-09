@@ -526,7 +526,7 @@ func TestThatDefaultsCanBeParsed(t *testing.T) {
 
 	defaultValue := so.Properties["name"].Default
 	if defaultValue != "Enrique" {
-		t.Errorf("expected first value of property 'name' type to be 'integer', but was '%v'", defaultValue)
+		t.Errorf("expected default value of property 'name' type to be 'Enrique', but was '%v'", defaultValue)
 	}
 }
 
