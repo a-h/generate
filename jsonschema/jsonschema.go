@@ -15,6 +15,7 @@ type Schema struct {
 	Description          string      `json:"description"`
 	Definitions          map[string]*Schema
 	Properties           map[string]*Schema
+	Default			 	 interface{} `json:"default"`
 	AdditionalProperties AdditionalProperties
 	Reference            string `json:"$ref"`
 	// Items represents the types that are permitted in the array.
