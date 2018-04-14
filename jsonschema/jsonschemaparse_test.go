@@ -544,6 +544,29 @@ func TestThatParsingInvalidValuesReturnsAnError(t *testing.T) {
 	}
 }
 
+func TestThatDefaultsCanBeParsed(t *testing.T) {
+	s := `{
+        "$schema": "http://json-schema.org/schema#",
+        "title": "root",
+        "properties": {
+            "name": {
+                "type": [ "integer", "string" ],
+                "default":"Enrique"
+            }
+        }
+    }`
+	so, err := Parse(s)
+
+	if err != nil {
+		t.Error("It was not possible to deserialize the schema with references with error ", err)
+	}
+
+	defaultValue := so.Properties["name"].Default
+	if defaultValue != "Enrique" {
+		t.Errorf("expected default value of property 'name' type to be 'Enrique', but was '%v'", defaultValue)
+	}
+}
+
 func TestReturnedSchemaId(t *testing.T) {
 	tests := []struct {
 		input    *Schema
