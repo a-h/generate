@@ -158,7 +158,7 @@ func TestFieldGenerationWithArrayReferences(t *testing.T) {
 	}
 
 	testField(result["Property1"], "property1", "Property1", "string", false, t)
-	testField(result["Property2"], "property2", "Property2", "[]Address", true, t)
+	testField(result["Property2"], "property2", "Property2", "[]*Address", true, t)
 	testField(result["Property3"], "property3", "Property3", "[]map[string]int", false, t)
 }
 
@@ -393,8 +393,8 @@ func TestNestedArrayGeneration(t *testing.T) {
 	if !ok {
 		t.Errorf("Expected to find the Cities field on the FavouriteBars, but didn't. The struct is %+v", fbStruct)
 	}
-	if f.Type != "[]City" {
-		t.Errorf("Expected to find that the Cities array was of type City, but it was of %s", f.Type)
+	if f.Type != "[]*City" {
+		t.Errorf("Expected to find that the Cities array was of type *City, but it was of %s", f.Type)
 	}
 
 	f, ok = fbStruct.Fields["Tags"]
