@@ -36,7 +36,7 @@ func TestThatTheRootSchemaCanBeParsed(t *testing.T) {
 	so, err := Parse(s)
 
 	if err != nil {
-		t.Error("It should be possible to deserialize a simple schema, but received error ", err)
+		t.Fatal("It should be possible to deserialize a simple schema, but received error ", err)
 	}
 
 	if so.Title != "root" {
@@ -63,7 +63,7 @@ func TestThatPropertiesCanBeParsed(t *testing.T) {
 	so, err := Parse(s)
 
 	if err != nil {
-		t.Error("It was not possible to deserialize the schema with references with error ", err)
+		t.Fatal("It was not possible to deserialize the schema with references with error ", err)
 	}
 
 	nameType, nameMultiple := so.Properties["name"].Type()
@@ -85,7 +85,7 @@ func TestThatPropertiesCanBeParsed(t *testing.T) {
 	}
 }
 
-func TestThatTypesCanBeExtracted(t *testing.T) {
+func TestThatStructTypesCanBeExtracted(t *testing.T) {
 	s := `{
         "$schema": "http://json-schema.org/draft-04/schema#",
         "id": "Example",
@@ -123,7 +123,7 @@ func TestThatTypesCanBeExtracted(t *testing.T) {
 	so, err := Parse(s)
 
 	if err != nil {
-		t.Error("failed to parse the test JSON: ", err)
+		t.Fatal("Failed to parse the test JSON: ", err)
 	}
 
 	// Check that the definitions have been deserialized correctly into a map.
@@ -136,18 +136,46 @@ func TestThatTypesCanBeExtracted(t *testing.T) {
 	types := so.ExtractTypes()
 
 	if len(types) != 4 {
-		t.Errorf("expected 4 types, the example, address, status and links, but got %d types - %s", len(types),
+		t.Errorf("Expected 4 types, the example, address, status and links, but got %d types - %s", len(types),
 			strings.Join(getKeyNames(types), ", "))
 	}
 
-	// Check that the names of the types map to expected references.
+	// Check that the keys of the types map to expected references.
 	if _, ok := types["#/definitions/address"]; !ok {
-		t.Errorf("was expecting to find the address type in the map under key #/definitions/address, available types were %s",
+		t.Errorf("Expecting to find the address type in the map under key #/definitions/address, available keys were %s",
 			strings.Join(getKeyNames(types), ", "))
 	}
 
 	if _, ok := types["#/definitions/links"]; !ok {
-		t.Errorf("was expecting to find the links type in the map under key #/definitions/links, available types were %s",
+		t.Errorf("Expected to find the links type in the map under key #/definitions/links, available keys were %s",
+			strings.Join(getKeyNames(types), ", "))
+	}
+}
+
+func TestThatAliasTypesCanBeExtracted(t *testing.T) {
+	s := `{
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$id": "Example",
+        "type": "string",
+        "enum": [ "A", "B", "C", "D", "E", "F" ]
+    }`
+	so, err := Parse(s)
+
+	if err != nil {
+		t.Fatal("Failed to parse the test JSON: ", err)
+	}
+
+	// Check that the types can be extracted into a map.
+	types := so.ExtractTypes()
+
+	if len(types) != 1 {
+		t.Errorf("Expected 1 type, the Root type, but got %d types - %s", len(types),
+			strings.Join(getKeyNames(types), ", "))
+	}
+
+	// Check that the key of the type maps to expected reference.
+	if _, ok := types["#"]; !ok {
+		t.Errorf("Expected to find the Root type in the map under key #, available keys were %s",
 			strings.Join(getKeyNames(types), ", "))
 	}
 }
@@ -335,20 +363,29 @@ func TestThatArraysAreSupported(t *testing.T) {
 	// Check that the types can be extracted into a map.
 	types := so.ExtractTypes()
 
-	if len(types) != 1 {
-		t.Errorf("expected 1 type, just the Product, but got %d types - %s", len(types),
+	if len(types) != 2 {
+		t.Errorf("Expected 2 types, ProductSet and Product, but got %d types - %s", len(types),
 			strings.Join(getKeyNames(types), ", "))
 	}
 
-	// Check that the path of the types map to expected references.
-	ps, ok := types["#"]
+	// Check that the keys of the types map to expected references.
+	pss, ok := types["#"]
 	if !ok {
-		t.Fatalf("Expected to find the '#' schema path, but available paths were %s",
+		t.Errorf("Expected to find the '#' schema path, but available paths were %s",
 			strings.Join(getKeyNames(types), ", "))
+	}
+	ps, ok := types["#/arrayitems"]
+	if !ok {
+		t.Errorf("Expected to find the '#/arrayitems' schema path, but available paths were %s",
+			strings.Join(getKeyNames(types), ", "))
+	}
+
+	if pss.Title != "ProductSet" {
+		t.Errorf("Expected the root schema's title to be 'ProductSet', but it was %s", pss.Title)
 	}
 
 	if ps.Title != "Product" {
-		t.Errorf("Expected the root schema's title to be 'Product', but it was %s", ps.Title)
+		t.Errorf("Expected the array item's title to be 'Product', but it was %s", ps.Title)
 	}
 
 	if len(ps.Properties) != 4 {
@@ -452,7 +489,7 @@ func TestThatRequiredPropertiesAreIncludedInTheSchemaModel(t *testing.T) {
 	so, err := Parse(s)
 
 	if err != nil {
-		t.Error("failed to parse the test JSON: ", err)
+		t.Fatal("Failed to parse the test JSON: ", err)
 	}
 
 	types := so.ExtractTypes()
@@ -485,7 +522,7 @@ func TestThatPropertiesCanHaveMultipleTypes(t *testing.T) {
 	so, err := Parse(s)
 
 	if err != nil {
-		t.Error("It was not possible to deserialize the schema with references with error ", err)
+		t.Fatal("It was not possible to deserialize the schema with references with error ", err)
 	}
 
 	nameType, nameMultiple := so.Properties["name"].Type()
@@ -503,7 +540,7 @@ func TestThatParsingInvalidValuesReturnsAnError(t *testing.T) {
 	_, err := Parse(s)
 
 	if err == nil {
-		t.Error("expected a parsing error, but got nil")
+		t.Fatal("Expected a parsing error, but got nil")
 	}
 }
 
