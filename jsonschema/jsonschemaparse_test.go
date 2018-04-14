@@ -36,7 +36,7 @@ func TestThatTheRootSchemaCanBeParsed(t *testing.T) {
 	so, err := Parse(s)
 
 	if err != nil {
-		t.Fatal("It should be possible to deserialize a simple schema, but received error ", err)
+		t.Fatal("It should be possible to unmarshal a simple schema, but received error:", err)
 	}
 
 	if so.Title != "root" {
@@ -63,7 +63,7 @@ func TestThatPropertiesCanBeParsed(t *testing.T) {
 	so, err := Parse(s)
 
 	if err != nil {
-		t.Fatal("It was not possible to deserialize the schema with references with error ", err)
+		t.Fatal("It was not possible to unmarshal the schema:", err)
 	}
 
 	nameType, nameMultiple := so.Properties["name"].Type()
@@ -126,7 +126,7 @@ func TestThatStructTypesCanBeExtracted(t *testing.T) {
 		t.Fatal("Failed to parse the test JSON: ", err)
 	}
 
-	// Check that the definitions have been deserialized correctly into a map.
+	// Check that the definitions have been unmarshalled correctly into a map.
 	if len(so.Definitions) != 3 {
 		t.Errorf("The parsed schema should have two child definitions, one for address, one for status, and one for links but got %s",
 			strings.Join(getKeyNames(so.Definitions), ", "))
@@ -522,7 +522,7 @@ func TestThatPropertiesCanHaveMultipleTypes(t *testing.T) {
 	so, err := Parse(s)
 
 	if err != nil {
-		t.Fatal("It was not possible to deserialize the schema with references with error ", err)
+		t.Fatal("It was not possible to unmarshal the schema:", err)
 	}
 
 	nameType, nameMultiple := so.Properties["name"].Type()
@@ -558,7 +558,7 @@ func TestThatDefaultsCanBeParsed(t *testing.T) {
 	so, err := Parse(s)
 
 	if err != nil {
-		t.Error("It was not possible to deserialize the schema with references with error ", err)
+		t.Fatal("It was not possible to unmarshal the schema:", err)
 	}
 
 	defaultValue := so.Properties["name"].Default

@@ -699,7 +699,7 @@ func TestTypeAliases(t *testing.T) {
 			aliases: 1,
 		},
 		{
-			gotype: "[]Foo",
+			gotype: "[]*Foo",
 			input: &jsonschema.Schema{TypeValue: "array",
 				Items: &jsonschema.Schema{
 					TypeValue: "object",
