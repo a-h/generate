@@ -493,6 +493,16 @@ func TestThatJavascriptKeyNamesCanBeConvertedToValidGoNames(t *testing.T) {
 			input:       "a:b",
 			expected:    "AB",
 		},
+		{
+			description: "GT and LT are stripped.",
+			input:       "a<b>",
+			expected:    "AB",
+		},
+		{
+			description: "Not allowed to start with a number.",
+			input:       "123ABC",
+			expected:    "_123ABC",
+		},
 	}
 
 	for _, test := range tests {

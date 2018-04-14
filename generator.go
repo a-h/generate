@@ -9,6 +9,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/a-h/generate/jsonschema"
 )
@@ -379,19 +380,23 @@ func getTypeName(reference *url.URL, structType *jsonschema.Schema, n int) strin
 func getGolangName(s string) string {
 	buf := bytes.NewBuffer([]byte{})
 
-	for _, v := range splitOnAll(s, '_', ' ', '.', '-', ':') {
+	for i, v := range splitOnAll(s, isNotAGoNameCharacter) {
+		if i == 0 && strings.IndexAny(v, "0123456789") == 0 {
+			// Go types are not allowed to start with a number, lets prefix with an underscore.
+			buf.WriteRune('_')
+		}
 		buf.WriteString(capitaliseFirstLetter(v))
 	}
 
 	return buf.String()
 }
 
-func splitOnAll(s string, splitItems ...rune) []string {
+func splitOnAll(s string, shouldSplit func(r rune) bool) []string {
 	rv := []string{}
 
 	buf := bytes.NewBuffer([]byte{})
 	for _, c := range s {
-		if matches(c, splitItems) {
+		if shouldSplit(c) {
 			rv = append(rv, buf.String())
 			buf.Reset()
 		} else {
@@ -405,13 +410,11 @@ func splitOnAll(s string, splitItems ...rune) []string {
 	return rv
 }
 
-func matches(c rune, any []rune) bool {
-	for _, a := range any {
-		if a == c {
-			return true
-		}
+func isNotAGoNameCharacter(r rune) bool {
+	if unicode.IsLetter(r) || unicode.IsDigit(r) {
+		return false
 	}
-	return false
+	return true
 }
 
 func capitaliseFirstLetter(s string) string {

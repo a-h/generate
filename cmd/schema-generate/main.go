@@ -37,6 +37,7 @@ func main() {
 	}
 	if len(inputFiles) == 0 {
 		fmt.Fprintln(os.Stderr, "No input JSON Schema files.")
+		flag.Usage()
 		os.Exit(1)
 	}
 
@@ -136,6 +137,9 @@ func getOrderedStructNames(m map[string]generate.Struct) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+type _123ABC struct {
 }
 
 func output(w io.Writer, structs map[string]generate.Struct, aliases map[string]generate.Field) {
