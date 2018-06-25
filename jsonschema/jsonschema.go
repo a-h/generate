@@ -33,12 +33,12 @@ type Schema struct {
 	// Properties, Required and AdditionalProperties describe an object's child instances.
 	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.5
 	Properties           map[string]*Schema
-	
-	// Default value is applicable to a single sub-instance
-	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.2
-	Default			 	 interface{} `json:"default"`
 	Required             []string
 	AdditionalProperties AdditionalProperties
+
+	// Default can be used to supply a default JSON value associated with a particular schema.
+	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.2
+	Default interface{}
 
 	// Reference is a URI reference to a schema.
 	// http://json-schema.org/draft-07/json-schema-core.html#rfc.section.8
