@@ -181,7 +181,10 @@ func output(w io.Writer, structs map[string]generate.Struct, aliases map[string]
 }
 
 func outputNameAndDescriptionComment(name, description string, w io.Writer) {
-	description = strings.ToLower(string(description[0])) + description[1:]
+	if len(description) > 0 {
+		description = strings.ToLower(string(description[0])) + description[1:]
+	}
+
 	if strings.Index(description, "\n") == -1 {
 		fmt.Fprintf(w, "// %s %s\n", name, description)
 		return
