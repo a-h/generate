@@ -37,7 +37,6 @@ func (g *Generator) CreateTypes() (structs map[string]Struct, aliases map[string
 			}
 		}
 	}
-
 	// Extract nested and complex types from the JSON schemas.
 	types := map[string]*jsonschema.Schema{}
 	for i, schema := range g.schemas {
