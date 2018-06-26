@@ -130,6 +130,13 @@ func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[stri
 		return
 	}
 
+	// Add root schemas composed of an object type without property.
+	// The resulting type depends on the presence of additionalProperties.
+	if (t == "object" || t == "") && len(s.Properties) == 0 && path == "#" {
+		types[path] = s
+		return
+	}
+
 	// Add root schemas composed only of a simple type
 	if !(t == "object" || t == "") && path == "#" {
 		types[path] = s

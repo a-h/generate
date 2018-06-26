@@ -58,7 +58,7 @@ func (g *Generator) CreateTypes() (structs map[string]Struct, aliases map[string
 	for _, typeKey := range getOrderedKeyNamesFromSchemaMap(types) {
 		v := types[typeKey]
 
-		if v.TypeValue == "object" || v.TypeValue == nil {
+		if (v.TypeValue == "object" || v.TypeValue == nil) && len(v.Properties) > 0 {
 			s, errtype := createStruct(typeKey, v, types)
 			if errtype != nil {
 				errs = append(errs, errtype...)

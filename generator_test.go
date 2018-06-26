@@ -219,6 +219,9 @@ func TestEmptyNestedStructGeneration(t *testing.T) {
 	root.Properties = map[string]*jsonschema.Schema{
 		"property1": {
 			TypeValue: "object",
+			Properties: map[string]*jsonschema.Schema{
+				"nestedproperty1": {TypeValue: "string"},
+			},
 		},
 	}
 
@@ -714,6 +717,9 @@ func TestTypeAliases(t *testing.T) {
 				Items: &jsonschema.Schema{
 					TypeValue: "object",
 					Title:     "foo",
+					Properties: map[string]*jsonschema.Schema{
+						"nestedproperty": {TypeValue: "string"},
+					},
 				}},
 			structs: 1,
 			aliases: 1,
@@ -721,6 +727,24 @@ func TestTypeAliases(t *testing.T) {
 		{
 			gotype:  "[]interface{}",
 			input:   &jsonschema.Schema{TypeValue: "array"},
+			structs: 0,
+			aliases: 1,
+		},
+		{
+			gotype: "map[string]string",
+			input: &jsonschema.Schema{
+				TypeValue:            "object",
+				AdditionalProperties: []*jsonschema.Schema{{TypeValue: "string"}},
+			},
+			structs: 0,
+			aliases: 1,
+		},
+		{
+			gotype: "map[string]interface{}",
+			input: &jsonschema.Schema{
+				TypeValue:            "object",
+				AdditionalProperties: []*jsonschema.Schema{{TypeValue: []interface{}{"string", "integer"}}},
+			},
 			structs: 0,
 			aliases: 1,
 		},
