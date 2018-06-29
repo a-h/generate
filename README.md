@@ -6,82 +6,31 @@ Generates Go (golang) Structs from JSON schema.
 
 * Go 1.8+
 
-# Examples
+# Usage
 
-```javascript
+Build
+
+```console
+$ make
+```
+
+Run
+
+```console
+$ schema-generate exampleschema.json
+```
+
+# Example
+
+This schema
+
+```json
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Example",
-  "id": "Example",
+  "id": "http://example.com/exampleschema.json",
   "type": "object",
-  "description": "example",
-  "definitions": {
-    "address": {
-      "id": "address",
-      "type": "object",
-      "description": "Address",
-      "properties": {
-        "houseName": {
-          "type": "string",
-          "description": "House Name",
-          "maxLength": 30
-        },
-        "houseNumber": {
-          "type": "string",
-          "description": "House Number",
-          "maxLength": 4
-        },
-        "flatNumber": {
-          "type": "string",
-          "description": "Flat",
-          "maxLength": 15
-        },
-        "street": {
-          "type": "string",
-          "description": "Address 1",
-          "maxLength": 40
-        },
-        "district": {
-          "type": "string",
-          "description": "Address 2",
-          "maxLength": 30
-        },
-        "town": {
-          "type": "string",
-          "description": "City",
-          "maxLength": 20
-        },
-        "county": {
-          "type": "string",
-          "description": "County",
-          "maxLength": 20
-        },
-        "postcode": {
-          "type": "string",
-          "description": "Postcode",
-          "maxLength": 8
-        }
-      }
-    },
-    "status": {
-      "type": "object",
-      "properties": {
-        "favouritecat": {
-          "enum": [
-            "A",
-            "B",
-            "C",
-            "D",
-            "E",
-            "F"
-          ],
-          "type": "string",
-          "description": "The favourite cat.",
-          "maxLength": 1
-        }
-      }
-    }
-  },
+  "description": "An example JSON Schema",
   "properties": {
     "name": {
       "type": "string"
@@ -92,30 +41,51 @@ Generates Go (golang) Structs from JSON schema.
     "status": {
       "$ref": "#/definitions/status"
     }
+  },
+  "definitions": {
+    "address": {
+      "id": "address",
+      "type": "object",
+      "description": "Address",
+      "properties": {
+        "street": {
+          "type": "string",
+          "description": "Address 1",
+          "maxLength": 40
+        },
+        "houseNumber": {
+          "type": "integer",
+          "description": "House Number"
+        }
+      }
+    },
+    "status": {
+      "type": "object",
+      "properties": {
+        "favouritecat": {
+          "enum": [
+            "A",
+            "B",
+            "C"
+          ],
+          "type": "string",
+          "description": "The favourite cat.",
+          "maxLength": 1
+        }
+      }
+    }
   }
 }
 ```
 
-Run this:
-
-```bash
-go run main.go exampleschema.json
-```
-
-Get this:
+generates
 
 ```go
 package main
 
 type Address struct {
-  County string `json:"county,omitempty"`
-  District string `json:"district,omitempty"`
-  FlatNumber string `json:"flatNumber,omitempty"`
-  HouseName string `json:"houseName,omitempty"`
-  HouseNumber string `json:"houseNumber,omitempty"`
-  Postcode string `json:"postcode,omitempty"`
+  HouseNumber int `json:"houseNumber,omitempty"`
   Street string `json:"street,omitempty"`
-  Town string `json:"town,omitempty"`
 }
 
 type Example struct {
@@ -128,3 +98,5 @@ type Status struct {
   Favouritecat string `json:"favouritecat,omitempty"`
 }
 ```
+
+See the [test/](./test/) directory for more examples.

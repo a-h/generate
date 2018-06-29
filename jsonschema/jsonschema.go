@@ -14,7 +14,7 @@ type Schema struct {
 	SchemaType string `json:"$schema"`
 
 	// ID{04,06} is the schema URI identifier.
-	// http://json-schema.org/draft-07/json-schema-core.html#rfc.section.9
+	// http://json-schema.org/draft-07/json-schema-core.html#rfc.section.8.2
 	ID04 string `json:"id"`  // up to draft-04
 	ID06 string `json:"$id"` // from draft-06 onwards
 
