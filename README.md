@@ -8,6 +8,14 @@ Generates Go (golang) Structs from JSON schema.
 
 # Usage
 
+Install
+
+```console
+$ go get -u github.com/a-h/generate/...
+```
+
+or
+
 Build
 
 ```console
