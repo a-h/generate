@@ -10,6 +10,7 @@
         "name": {
             "type": "string",
             "description": "Repository name."
+
         },
         "repositories": {
             "type": "array",

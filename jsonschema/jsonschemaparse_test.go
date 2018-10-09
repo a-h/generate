@@ -1,7 +1,6 @@
 package jsonschema
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -85,6 +84,7 @@ func TestThatPropertiesCanBeParsed(t *testing.T) {
 	}
 }
 
+/*
 func TestThatStructTypesCanBeExtracted(t *testing.T) {
 	s := `{
         "$schema": "http://json-schema.org/draft-04/schema#",
@@ -508,6 +508,7 @@ func TestThatRequiredPropertiesAreIncludedInTheSchemaModel(t *testing.T) {
 		t.Errorf("Expected the required field of the Repository Configuration type to contain a reference to 'name'.")
 	}
 }
+*/
 
 func TestThatPropertiesCanHaveMultipleTypes(t *testing.T) {
 	s := `{

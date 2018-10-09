@@ -1,11 +1,13 @@
-// Package jsonschema provides primitives for extracting data from JSON schemas.
 package jsonschema
 
 import (
 	"encoding/json"
 	"errors"
-	"strings"
+	"net/url"
 )
+
+// AdditionalProperties handles additional properties present in the JSON schema.
+type AdditionalProperties Schema
 
 // Schema represents JSON schema.
 type Schema struct {
@@ -34,11 +36,22 @@ type Schema struct {
 	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.5
 	Properties           map[string]*Schema
 	Required             []string
-	AdditionalProperties AdditionalProperties
+
+	// "additionalProperties": {...}
+	AdditionalProperties *AdditionalProperties
+
+	// "additionalProperties": false
+	AdditionalPropertiesBool *bool `json:"-"`
+
+	AnyOf []*Schema
+	AllOf []*Schema
+	OneOf []*Schema
 
 	// Default can be used to supply a default JSON value associated with a particular schema.
 	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.2
 	Default interface{}
+
+	Examples []string
 
 	// Reference is a URI reference to a schema.
 	// http://json-schema.org/draft-07/json-schema-core.html#rfc.section.8
@@ -48,17 +61,60 @@ type Schema struct {
 	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.4
 	Items *Schema
 
-	// NameCount is the number of times the instance name was encountered accross the schema.
+	// NameCount is the number of times the instance name was encountered across the schema.
 	NameCount int `json:"-" `
+
+	// Parent schema
+	Parent *Schema `json:"-" `
+
+	// Key of this schema i.e. { "JSONKey": { "type": "object", ....
+	JSONKey string `json:"-" `
+
+}
+
+
+// UnmarshalJSON handles unmarshalling AdditionalProperties from JSON.
+func (ap *AdditionalProperties) UnmarshalJSON(data []byte) error {
+	var b bool
+	if err := json.Unmarshal(data, &b); err == nil {
+		*ap = (AdditionalProperties)(Schema { AdditionalPropertiesBool: &b })
+		return nil
+	}
+
+	// support anyOf, allOf, oneOf
+	a := map[string][]*Schema{}
+	if err := json.Unmarshal(data, &a); err == nil {
+		for k, v := range a {
+			switch k {
+			case "oneOf":
+				ap.OneOf = append(ap.OneOf, v...)
+			case "allOf":
+				ap.AllOf = append(ap.AllOf, v...)
+			case "anyOf":
+				ap.AnyOf = append(ap.AnyOf, v...)
+			}
+			if k == "oneOf" || k == "allOf" || k == "anyOf" {
+
+			}
+		}
+		return nil
+	}
+
+	s := Schema{}
+	err := json.Unmarshal(data, &s)
+	if err == nil {
+		*ap = AdditionalProperties(s)
+	}
+	return err
 }
 
 // ID returns the schema URI id.
-func (s *Schema) ID() string {
+func (schema *Schema) ID() string {
 	// prefer "$id" over "id"
-	if s.ID06 == "" && s.ID04 != "" {
-		return s.ID04
+	if schema.ID06 == "" && schema.ID04 != "" {
+		return schema.ID04
 	}
-	return s.ID06
+	return schema.ID06
 }
 
 // Type returns the type which is permitted or an empty string if the type field is missing.
@@ -68,16 +124,16 @@ func (s *Schema) ID() string {
 //   [] => "", false
 //   ["a"] => "a", false
 //   ["a", "b"] => "a", true
-func (s *Schema) Type() (firstOrDefault string, multiple bool) {
+func (schema *Schema) Type() (firstOrDefault string, multiple bool) {
 	// We've got a single value, e.g. { "type": "object" }
-	if ts, ok := s.TypeValue.(string); ok {
+	if ts, ok := schema.TypeValue.(string); ok {
 		firstOrDefault = ts
 		multiple = false
 		return
 	}
 
 	// We could have multiple types in the type value, e.g. { "type": [ "object", "array" ] }
-	if a, ok := s.TypeValue.([]interface{}); ok {
+	if a, ok := schema.TypeValue.([]interface{}); ok {
 		multiple = len(a) > 1
 		for _, n := range a {
 			if s, ok := n.(string); ok {
@@ -88,6 +144,82 @@ func (s *Schema) Type() (firstOrDefault string, multiple bool) {
 	}
 
 	return "", multiple
+}
+
+// returns "type" as an array
+func (schema *Schema) MultiType() ([]string, bool) {
+	// We've got a single value, e.g. { "type": "object" }
+	if ts, ok := schema.TypeValue.(string); ok {
+		return []string{ts}, false
+	}
+
+	// We could have multiple types in the type value, e.g. { "type": [ "object", "array" ] }
+	if a, ok := schema.TypeValue.([]interface{}); ok {
+		rv := []string{}
+		for _, n := range a {
+			if s, ok := n.(string); ok {
+				rv = append(rv, s)
+			}
+		}
+		return rv, len(rv) > 1
+	}
+
+	return nil, false
+}
+
+func (schema *Schema) updateParentLinks() {
+
+	for k, d := range schema.Definitions {
+		d.JSONKey = k
+		d.Parent = schema
+		d.updateParentLinks()
+	}
+	for k, p := range schema.Properties {
+		p.JSONKey = k
+		p.Parent = schema
+		p.updateParentLinks()
+	}
+	if schema.AdditionalProperties != nil {
+		schema.AdditionalProperties.Parent = schema
+		(*Schema)(schema.AdditionalProperties).updateParentLinks()
+	}
+	if schema.Items != nil {
+		schema.Items.Parent = schema
+		schema.Items.updateParentLinks()
+	}
+}
+
+func (schema *Schema) GetRoot() *Schema {
+	if schema.Parent != nil {
+		return schema.Parent.GetRoot()
+	} else {
+		return schema
+	}
+}
+
+func (schema *Schema) resolveURL(url *url.URL) (*url.URL, error) {
+	u, err := url.Parse(schema.GetRoot().ID())
+	if err != nil {
+		return nil, err
+	}
+
+	return u.ResolveReference(url), nil
+}
+
+func (schema *Schema) GetDefinitionURL(key string) (*url.URL, error) {
+	keyPath, err := url.Parse("#/definitions/"+key)
+	if err != nil {
+		return nil, err
+	}
+	return schema.resolveURL(keyPath)
+}
+
+func (schema *Schema) ResolveReference() (*url.URL, error) {
+	refUrl, err := url.Parse(schema.Reference)
+	if err != nil {
+		return nil, err
+	}
+	return schema.resolveURL(refUrl)
 }
 
 // Parse parses a JSON schema from a string.
@@ -103,142 +235,8 @@ func Parse(schema string) (*Schema, error) {
 		return s, errors.New("JSON schema must have a $schema key")
 	}
 
+	s.updateParentLinks()
+
 	return s, err
 }
 
-// ExtractTypes creates a map of defined types within the schema.
-func (s *Schema) ExtractTypes() map[string]*Schema {
-	types := make(map[string]*Schema)
-
-	addTypeAndChildrenToMap("#", "", s, types)
-
-	counts := make(map[string]int)
-	for path, t := range types {
-		parts := strings.Split(path, "/")
-		name := parts[len(parts)-1]
-		counts[name] = counts[name] + 1
-		t.NameCount = counts[name]
-	}
-
-	return types
-}
-
-func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[string]*Schema) {
-	t, multiple := s.Type()
-	if multiple {
-		// If we have more than one possible type for this field, the result is an interface{} in the struct definition.
-		return
-	}
-
-	// Add root schemas composed of an object type without property.
-	// The resulting type depends on the presence of additionalProperties.
-	if (t == "object" || t == "") && len(s.Properties) == 0 && path == "#" {
-		types[path] = s
-		return
-	}
-
-	// Add root schemas composed only of a simple type
-	if !(t == "object" || t == "") && path == "#" {
-		types[path] = s
-	}
-
-	if t == "array" {
-		if s.Items != nil {
-			if path == "#" {
-				path += "/arrayitems"
-			}
-			addTypeAndChildrenToMap(path, name, s.Items, types)
-		}
-		return
-	}
-
-	namePrefix := "/" + name
-	// Don't add the name into the root, or we end up with an extra slash.
-	if (path == "#" || path == "#/arrayitems") && name == "" {
-		namePrefix = ""
-	}
-
-	if len(s.Properties) == 0 && len(s.AdditionalProperties) > 0 {
-		// if we have more than one valid type in additionalProperties, we can disregard them
-		// as we will render as a weakly-typed map i.e map[string]interface{}
-		if len(s.AdditionalProperties) == 1 {
-			addTypeAndChildrenToMap(path, name, s.AdditionalProperties[0], types)
-		}
-		return
-	}
-
-	if len(s.Properties) > 0 || t == "object" {
-		types[path+namePrefix] = s
-	}
-
-	if s.Definitions != nil {
-		for k, d := range s.Definitions {
-			addTypeAndChildrenToMap(path+namePrefix+"/definitions", k, d, types)
-		}
-	}
-
-	if s.Properties != nil {
-		for k, d := range s.Properties {
-			// Only add the children as their own type if they have properties at all.
-			addTypeAndChildrenToMap(path+namePrefix+"/properties", k, d, types)
-		}
-	}
-}
-
-// ListReferences lists all of the references in a schema.
-func (s *Schema) ListReferences() map[string]bool {
-	m := make(map[string]bool)
-	addReferencesToMap(s, m)
-	return m
-}
-
-func addReferencesToMap(s *Schema, m map[string]bool) {
-	if s.Reference != "" {
-		m[s.Reference] = true
-	}
-
-	if s.Definitions != nil {
-		for _, d := range s.Definitions {
-			addReferencesToMap(d, m)
-		}
-	}
-
-	if s.Properties != nil {
-		for _, p := range s.Properties {
-			addReferencesToMap(p, m)
-		}
-	}
-
-	if s.Items != nil {
-		addReferencesToMap(s.Items, m)
-	}
-}
-
-// AdditionalProperties handles additional properties present in the JSON schema.
-type AdditionalProperties []*Schema
-
-// UnmarshalJSON handles unmarshalling AdditionalProperties from JSON.
-func (ap *AdditionalProperties) UnmarshalJSON(data []byte) error {
-	var b bool
-	if err := json.Unmarshal(data, &b); err == nil {
-		return nil
-	}
-
-	// support anyOf, allOf, oneOf
-	a := map[string][]*Schema{}
-	if err := json.Unmarshal(data, &a); err == nil {
-		for k, v := range a {
-			if k == "oneOf" || k == "allOf" || k == "anyOf" {
-				*ap = append(*ap, v...)
-			}
-		}
-		return nil
-	}
-
-	s := Schema{}
-	err := json.Unmarshal(data, &s)
-	if err == nil {
-		*ap = append(*ap, &s)
-	}
-	return err
-}
