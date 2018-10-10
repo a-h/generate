@@ -101,7 +101,7 @@ func TestFieldGeneration(t *testing.T) {
 	}
 
 	lookupTypes := map[string]*jsonschema.Schema{
-		"#/definitions/address":  {},
+		"#/definitions/address":  { Title: "Address", Properties: map[string]*jsonschema.Schema{"value": {TypeValue: "string"}}},
 		"#/properties/property5": properties["property5"].AdditionalProperties[0],
 	}
 

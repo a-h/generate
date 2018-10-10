@@ -124,6 +124,13 @@ func (s *Schema) ExtractTypes() map[string]*Schema {
 }
 
 func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[string]*Schema) {
+
+	if s.Definitions != nil {
+		for k, d := range s.Definitions {
+			addTypeAndChildrenToMap(path+"/definitions", k, d, types)
+		}
+	}
+
 	t, multiple := s.Type()
 	if multiple {
 		// If we have more than one possible type for this field, the result is an interface{} in the struct definition.
@@ -145,7 +152,13 @@ func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[stri
 	if t == "array" {
 		if s.Items != nil {
 			if path == "#" {
+				// /arrayitems only occurs in the root node as a special case
 				path += "/arrayitems"
+			}
+			// If this is an array of references, add it as an object or it won't be available for lookup.
+			// This means we need to then ignore it when we generate the aliases. uh-o spaghetti-o.
+			if s.Items.Reference != "" {
+				types[path+"/"+name] = s
 			}
 			addTypeAndChildrenToMap(path, name, s.Items, types)
 		}
@@ -169,12 +182,6 @@ func addTypeAndChildrenToMap(path string, name string, s *Schema, types map[stri
 
 	if len(s.Properties) > 0 || t == "object" {
 		types[path+namePrefix] = s
-	}
-
-	if s.Definitions != nil {
-		for k, d := range s.Definitions {
-			addTypeAndChildrenToMap(path+namePrefix+"/definitions", k, d, types)
-		}
 	}
 
 	if s.Properties != nil {

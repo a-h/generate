@@ -45,6 +45,7 @@ func (g *Generator) CreateTypes() (structs map[string]Struct, aliases map[string
 			if schemaIDs[i] != nil {
 				name = schemaIDs[i].ResolveReference(&url.URL{Fragment: name[1:]}).String()
 			}
+			//
 			if typ.Reference == "" {
 				types[name] = typ
 			}
@@ -70,12 +71,15 @@ func (g *Generator) CreateTypes() (structs map[string]Struct, aliases map[string
 
 			structs[s.Name] = s
 		} else {
-			a, errtype := createAlias(typeKey, v, types)
-			if errtype != nil {
-				errs = append(errs, errtype...)
-			}
+			// ignore all arrays except if it's the root element.
+			if typeKey == "#" {
+				a, errtype := createAlias(typeKey, v, types)
+				if errtype != nil {
+					errs = append(errs, errtype...)
+				}
 
-			aliases[a.Name] = a
+				aliases[a.Name] = a
+			}
 		}
 	}
 
@@ -236,9 +240,21 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 
 		if t, ok := types[ref.String()]; ok {
 			sn := getTypeName(ref, t, 1)
-
-			majorType = "object"
-			subType = sn
+			var isMultiple bool
+			majorType, isMultiple = t.Type()
+			if isMultiple {
+				// do nothing yet..
+			}
+			if majorType == "object" {
+				return getPrimitiveTypeName(majorType, sn, true)
+			} else {
+				// something else, recurse into the reference for the type
+				subType, err = getTypeForField(ref, fieldName, fieldGoName, t, types, true)
+				if err != nil {
+					return "undefined", err
+				}
+				return subType, nil
+			}
 		} else {
 			return "", fmt.Errorf("failed to resolve the reference %s", ref)
 		}
@@ -246,6 +262,7 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 
 	// Look up any embedded types.
 	if subType == "" && (majorType == "object" || majorType == "") {
+		// only additional properties and no regular properties
 		if len(fieldSchema.Properties) == 0 && len(fieldSchema.AdditionalProperties) > 0 {
 			if len(fieldSchema.AdditionalProperties) == 1 {
 				sn, _ := getTypeForField(parentTypeKey, fieldName, fieldGoName,
@@ -274,7 +291,7 @@ func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName strin
 	}
 
 	// Find named array references.
-	if majorType == "array" {
+	if majorType == "array" && subType == "" {
 		s, _ := getTypeForField(parentTypeKey, fieldName, fieldGoName, fieldSchema.Items, types, true)
 		subType = s
 	}

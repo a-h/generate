@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "ProductSet",
+  "type": "array",
+  "items": {
+    "$ref": "#/definitions/Product"
+  },
+  "definitions": {
+    "Product": {
+      "title": "Product",
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "The unique identifier for a product",
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "price": {
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": ["id", "name", "price"]
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Multipass",
+  "type": [
+    "array",
+    "object"
+  ],
+  "items": {
+    "type": "string"
+  },
+  "properties": {
+    "arr": {
+      "$ref": "#/definitions/Thing"
+    }
+  },
+  "definitions": {
+    "Thing": {
+      "type": [
+        "array",
+        "object"
+      ],
+      "items": {
+        "type": "integer"
+      },
+      "properties": {
+        "age": {
+          "type": ["integer", "string"]
+        }
+      }
+    }
+  }
+}

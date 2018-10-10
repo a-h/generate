@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "AnonArray",
+  "type": "object",
+  "properties": {
+    "arr": {
+      "$ref": "#/definitions/TheArray"
+    }
+  },
+  "definitions": {
+    "TheArray": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "anon": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "foo": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+  }
+}
