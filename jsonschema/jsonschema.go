@@ -235,8 +235,25 @@ func Parse(schema string) (*Schema, error) {
 		return s, errors.New("JSON schema must have a $schema key")
 	}
 
-	s.updateParentLinks()
+	s.Init()
 
 	return s, err
+}
+
+func (schema *Schema) Init() {
+	schema.updateParentLinks()
+}
+func (schema *Schema) FixMissingTypeValue() {
+	// backwards compatible: guess the users intention when they didn't specify a type...
+	if schema.TypeValue == nil {
+		if schema.Reference == "" && len(schema.Properties) > 0 {
+			schema.TypeValue = "object"
+			return
+		}
+		if schema.Items != nil {
+			schema.TypeValue = "array"
+			return
+		}
+	}
 }
 
