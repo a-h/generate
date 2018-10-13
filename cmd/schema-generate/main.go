@@ -12,6 +12,8 @@ import (
 
 	"github.com/a-h/generate"
 	"github.com/a-h/generate/jsonschema"
+	"net/url"
+	"path"
 )
 
 var (
@@ -48,7 +50,18 @@ func main() {
 			return
 		}
 
-		schemas[i], err = jsonschema.Parse(string(b))
+		abPath, err := Abs(file)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed to normalise input path with error ", err)
+			return
+		}
+
+		fileURI := url.URL{
+			Scheme: "file",
+			Path: abPath,
+		}
+
+		schemas[i], err = jsonschema.Parse(string(b), &fileURI)
 		if err != nil {
 			if jsonError, ok := err.(*json.SyntaxError); ok {
 				line, character, lcErr := lineAndCharacter(b, int(jsonError.Offset))
@@ -115,4 +128,12 @@ func lineAndCharacter(bytes []byte, offset int) (line int, character int, err er
 	}
 
 	return 0, 0, fmt.Errorf("couldn't find offset %d in %d bytes", offset, len(bytes))
+}
+
+func Abs(name string) (string, error) {
+	if path.IsAbs(name) {
+		return name, nil
+	}
+	wd, err := os.Getwd()
+	return path.Join(wd, name), err
 }

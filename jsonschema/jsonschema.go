@@ -70,6 +70,11 @@ type Schema struct {
 	// Key of this schema i.e. { "JSONKey": { "type": "object", ....
 	JSONKey string `json:"-" `
 
+	// path element - for creating a path by traversing back to the root element
+	PathElement string `json:"-"`
+
+	// calculated struct name of this object, cached here
+	ObjectName string `json:"-"`
 }
 
 
@@ -92,9 +97,6 @@ func (ap *AdditionalProperties) UnmarshalJSON(data []byte) error {
 				ap.AllOf = append(ap.AllOf, v...)
 			case "anyOf":
 				ap.AnyOf = append(ap.AnyOf, v...)
-			}
-			if k == "oneOf" || k == "allOf" || k == "anyOf" {
-
 			}
 		}
 		return nil
@@ -167,8 +169,76 @@ func (schema *Schema) MultiType() ([]string, bool) {
 	return nil, false
 }
 
-func (schema *Schema) updateParentLinks() {
+func (schema *Schema) GetRoot() *Schema {
+	if schema.Parent != nil {
+		return schema.Parent.GetRoot()
+	} else {
+		return schema
+	}
+}
 
+// Parse parses a JSON schema from a string.
+func Parse(schema string, uri *url.URL) (*Schema, error) {
+	s := &Schema{}
+	err := json.Unmarshal([]byte(schema), s)
+
+	if err != nil {
+		return s, err
+	}
+
+	if s.ID() == "" {
+		s.ID06 = uri.String()
+	}
+
+	// validate root URI, it MUST be an absolute URI
+	if abs, err := url.Parse(s.ID()); err != nil {
+		return nil, errors.New("error parsing $id of document \""+uri.String()+"\": "+err.Error())
+	} else {
+		if !abs.IsAbs() {
+			return nil, errors.New("$id of document not absolute URI: \""+uri.String()+"\": \""+s.ID()+"\"")
+		}
+	}
+
+	s.init()
+
+	return s, nil
+}
+
+func (schema *Schema) init() {
+	root := schema.GetRoot()
+	root.updateParentLinks()
+	root.ensureSchemaKeyword()
+	root.updatePathElements()
+}
+
+func (schema *Schema) updatePathElements() {
+	if schema.IsRoot() {
+		schema.PathElement = "#"
+	}
+
+	for k, d := range schema.Definitions {
+		d.PathElement = "definitions/" + k
+		d.updatePathElements()
+	}
+
+	for k, p := range schema.Properties {
+		p.PathElement = "properties/" + k
+		p.updatePathElements()
+	}
+
+	if schema.AdditionalProperties != nil {
+		schema.AdditionalProperties.PathElement = "additionalProperties"
+		(*Schema)(schema.AdditionalProperties).updatePathElements()
+	}
+
+	if schema.Items != nil {
+		schema.Items.PathElement = "items"
+		schema.Items.updatePathElements()
+	}
+}
+
+
+func (schema *Schema) updateParentLinks() {
 	for k, d := range schema.Definitions {
 		d.JSONKey = k
 		d.Parent = schema
@@ -189,61 +259,37 @@ func (schema *Schema) updateParentLinks() {
 	}
 }
 
-func (schema *Schema) GetRoot() *Schema {
-	if schema.Parent != nil {
-		return schema.Parent.GetRoot()
-	} else {
-		return schema
+func (schema *Schema) ensureSchemaKeyword() error {
+	check := func(k string, s *Schema) error {
+		if s.SchemaType != "" {
+			return errors.New("invalid $schema keyword: "+k)
+		} else {
+			return s.ensureSchemaKeyword()
+		}
 	}
+	for k, d := range schema.Definitions {
+		if err := check(k, d); err != nil {
+			return err
+		}
+	}
+	for k, d := range schema.Properties {
+		if err := check(k, d); err != nil {
+			return err
+		}	}
+	if schema.AdditionalProperties != nil {
+		if err := check("additionalProperties", (*Schema)(schema.AdditionalProperties)); err != nil {
+			return err
+		}
+	}
+	if schema.Items != nil {
+		if err := check("items", schema.Items); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (schema *Schema) resolveURL(url *url.URL) (*url.URL, error) {
-	u, err := url.Parse(schema.GetRoot().ID())
-	if err != nil {
-		return nil, err
-	}
-
-	return u.ResolveReference(url), nil
-}
-
-func (schema *Schema) GetDefinitionURL(key string) (*url.URL, error) {
-	keyPath, err := url.Parse("#/definitions/"+key)
-	if err != nil {
-		return nil, err
-	}
-	return schema.resolveURL(keyPath)
-}
-
-func (schema *Schema) ResolveReference() (*url.URL, error) {
-	refUrl, err := url.Parse(schema.Reference)
-	if err != nil {
-		return nil, err
-	}
-	return schema.resolveURL(refUrl)
-}
-
-// Parse parses a JSON schema from a string.
-func Parse(schema string) (*Schema, error) {
-	s := &Schema{}
-	err := json.Unmarshal([]byte(schema), s)
-
-	if err != nil {
-		return s, err
-	}
-
-	if s.SchemaType == "" {
-		return s, errors.New("JSON schema must have a $schema key")
-	}
-
-	s.Init()
-
-	return s, err
-}
-
-func (schema *Schema) Init() {
-	schema.updateParentLinks()
-}
-func (schema *Schema) FixMissingTypeValue() {
+func (schema *Schema) fixMissingTypeValue() {
 	// backwards compatible: guess the users intention when they didn't specify a type...
 	if schema.TypeValue == nil {
 		if schema.Reference == "" && len(schema.Properties) > 0 {
@@ -255,5 +301,9 @@ func (schema *Schema) FixMissingTypeValue() {
 			return
 		}
 	}
+}
+
+func (schema *Schema) IsRoot() bool {
+	return schema.Parent == nil
 }
 
