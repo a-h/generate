@@ -1,208 +1,256 @@
-// Package generate creates Go structs from JSON schemas.
 package generate
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
-	"net/url"
-	"path"
-	"sort"
+	"bytes"
 	"strings"
 	"unicode"
-
+	"errors"
+	"sort"
 	"github.com/a-h/generate/jsonschema"
 )
 
 // Generator will produce structs from the JSON schema.
 type Generator struct {
-	schemas []*jsonschema.Schema
+	schemas   []*jsonschema.Schema
+	resolver  *jsonschema.RefResolver
+	Structs   map[string]Struct
+	Aliases   map[string]Field
+	// cache for reference types; k=url v=type
+	refs      map[string]string
+	anonCount int
 }
 
 // New creates an instance of a generator which will produce structs.
 func New(schemas ...*jsonschema.Schema) *Generator {
 	return &Generator{
 		schemas: schemas,
+		resolver: jsonschema.NewRefResolver(schemas),
+		Structs: make(map[string]Struct),
+		Aliases: make(map[string]Field),
+		refs:    make(map[string]string),
 	}
 }
 
 // CreateTypes creates types from the JSON schemas, keyed by the golang name.
-func (g *Generator) CreateTypes() (structs map[string]Struct, aliases map[string]Field, err error) {
-	schemaIDs := make([]*url.URL, len(g.schemas))
-	for i, schema := range g.schemas {
-		if schema.ID() != "" {
-			schemaIDs[i], err = url.Parse(schema.ID())
-			if err != nil {
-				return
-			}
-		}
+func (g *Generator) CreateTypes() (err error) {
+
+	if err := g.resolver.Init(); err != nil {
+		return err
 	}
 
-	// Extract nested and complex types from the JSON schemas.
-	types := map[string]*jsonschema.Schema{}
-	for i, schema := range g.schemas {
-		for name, typ := range schema.ExtractTypes() {
-			if schemaIDs[i] != nil {
-				name = schemaIDs[i].ResolveReference(&url.URL{Fragment: name[1:]}).String()
-			}
-			//
-			if typ.Reference == "" {
-				types[name] = typ
-			}
-		}
-	}
-
-	structs = make(map[string]Struct)
-	aliases = make(map[string]Field)
-	errs := []error{}
-
-	for _, typeKey := range getOrderedKeyNamesFromSchemaMap(types) {
-		v := types[typeKey]
-
-		if (v.TypeValue == "object" || v.TypeValue == nil) && len(v.Properties) > 0 {
-			s, errtype := createStruct(typeKey, v, types)
-			if errtype != nil {
-				errs = append(errs, errtype...)
-			}
-
-			if _, ok := structs[s.Name]; ok {
-				errs = append(errs, errors.New("Duplicate struct name : "+s.Name))
-			}
-
-			structs[s.Name] = s
+	// extract the types
+	for _, schema := range g.schemas {
+		name := g.getSchemaName("", schema)
+		if rootType, err := g.processSchema(name, schema); err != nil {
+			return err
 		} else {
-			// ignore all arrays except if it's the root element.
-			if typeKey == "#" {
-				a, errtype := createAlias(typeKey, v, types)
-				if errtype != nil {
-					errs = append(errs, errtype...)
+			// ugh: if it was anything but a struct the type will not be the name...
+			if rootType != "*"+name {
+				a := Field {
+					Name:     name,
+					JSONName: "",
+					Type:     rootType,
+					Required: false,
+					Description:  schema.Description,
 				}
-
-				aliases[a.Name] = a
+				g.Aliases[a.Name] = a
 			}
 		}
 	}
-
-	if len(errs) > 0 {
-		err = errors.New(joinErrors(errs))
-	}
 	return
 }
 
-// createStruct creates a struct type from the JSON schema.
-func createStruct(typeKey string, schema *jsonschema.Schema, types map[string]*jsonschema.Schema) (s Struct, errs []error) {
-	typeKeyURI, err := url.Parse(typeKey)
-	if err != nil {
-		errs = append(errs, err)
-	}
-
-	fields, err := getFields(typeKeyURI, schema.Properties, types, schema.Required)
-	if err != nil {
-		errs = append(errs, err)
-	}
-
-	structName := getTypeName(typeKeyURI, schema, 1)
-	if err != nil {
-		errs = append(errs, err)
-	}
-
-	s = Struct{
-		ID:          typeKey,
-		Name:        structName,
-		Description: schema.Description,
-		Fields:      fields,
-	}
-
-	return
-}
-
-// createAlias creates a simple alias type from the JSON schema.
-func createAlias(typeKey string, schema *jsonschema.Schema, types map[string]*jsonschema.Schema) (a Field, errs []error) {
-	typeKeyURI, err := url.Parse(typeKey)
-	if err != nil {
-		errs = append(errs, err)
-	}
-
-	aliasName := getTypeName(typeKeyURI, schema, 1)
-	if err != nil {
-		errs = append(errs, err)
-	}
-
-	tn, err := getTypeForField(typeKeyURI, typeKey, aliasName, schema, types, true)
-	if err != nil {
-		errs = append(errs, err)
-	}
-
-	a = Field{
-		Name:     aliasName,
-		JSONName: "",
-		Type:     tn,
-		Required: false,
-	}
-
-	return
-}
-
-func joinErrors(errs []error) string {
-	var buffer bytes.Buffer
-
-	for idx, err := range errs {
-		buffer.WriteString(err.Error())
-
-		if idx+1 < len(errs) {
-			buffer.WriteString(", ")
+// process a block of definitions
+func (g *Generator) processDefinitions(schema *jsonschema.Schema) error {
+	for key, subSchema := range schema.Definitions {
+		if _, err := g.processSchema(getGolangName(key), subSchema); err != nil {
+			return err
 		}
 	}
-
-	return buffer.String()
+	return nil
 }
 
-func getOrderedKeyNamesFromSchemaMap(m map[string]*jsonschema.Schema) []string {
-	keys := make([]string, len(m))
-	idx := 0
-	for k := range m {
-		keys[idx] = k
-		idx++
+// process a reference string
+func (g *Generator) processReference(schema *jsonschema.Schema) (string, error) {
+	schemaPath := g.resolver.GetPath(schema)
+	if schema.Reference == "" {
+		return "", errors.New("processReference empty reference: "+ schemaPath)
 	}
-	sort.Strings(keys)
-	return keys
+	if refSchema, err := g.resolver.GetSchemaByReference(schema); err != nil {
+		return "", errors.New("processReference: reference \""+schema.Reference+"\" not found at \""+ schemaPath +"\"")
+	} else {
+		if refSchema.GeneratedType == "" {
+			// reference is not resolved yet. Do that now.
+			refSchemaName := g.getSchemaName("", refSchema)
+			if typeName, err := g.processSchema(refSchemaName, refSchema); err != nil {
+				return "", err
+			} else {
+				return typeName, nil
+			}
+		} else {
+			return refSchema.GeneratedType, nil
+		}
+	}
 }
 
-func getFields(parentTypeKey *url.URL, properties map[string]*jsonschema.Schema,
-	types map[string]*jsonschema.Schema, requiredFields []string) (field map[string]Field, err error) {
-	fields := map[string]Field{}
+// returns the type refered to by schema after resolving all dependencies
+func (g *Generator) processSchema(schemaName string, schema *jsonschema.Schema) (typ string, err error) {
+	if len(schema.Definitions) > 0 {
+		g.processDefinitions(schema)
+	}
+	schema.FixMissingTypeValue()
+	// if we have multiple schema types, the golang type will be interface{}
+	typ = "interface{}"
+	types, isMultiType := schema.MultiType()
+	if len(types) > 0 {
+		for _, schemaType := range types {
+			name := schemaName
+			if isMultiType {
+				name = name + "_" + schemaType
+			}
+			switch schemaType {
+			case "object":
+				if rv, err := g.processObject(name, schema); err != nil {
+					return "", err
+				} else {
+					if !isMultiType {
+						return rv, nil
+					}
+				}
+			case "array":
+				if rv, err := g.processArray(name, schema); err != nil {
+					return "", err
+				} else {
+					if !isMultiType {
+						return rv, nil
+					}
+				}
+			default:
+				if rv, err := getPrimitiveTypeName(schemaType, "", false); err != nil {
+					return "", err
+				} else {
+					if !isMultiType {
+						return rv, nil
+					}
+				}
+			}
+		}
+	} else {
+		if schema.Reference != "" {
+			return g.processReference(schema)
+		}
+	}
+	return // return interface{}
+}
 
-	missingTypes := []string{}
-	errors := []error{}
-
-	for _, fieldName := range getOrderedKeyNamesFromSchemaMap(properties) {
-		v := properties[fieldName]
-
-		golangName := getGolangName(fieldName)
-		tn, err := getTypeForField(parentTypeKey, fieldName, golangName, v, types, true)
-
+// name: name of this array, usually the js key
+// schema: items element
+func (g *Generator) processArray(name string, schema *jsonschema.Schema) (typeStr string, err error) {
+	if schema.Items != nil {
+		// subType: fallback name in case this array contains inline object without a title
+		subName := g.getSchemaName(name + "Items", schema.Items)
+		subTyp, err := g.processSchema(subName, schema.Items)
 		if err != nil {
-			missingTypes = append(missingTypes, golangName)
-			errors = append(errors, err)
+			return "", err
 		}
-
-		f := Field{
-			Name:     golangName,
-			JSONName: fieldName,
-			// Look up the types, try references first, then drop to the built-in types.
-			Type:     tn,
-			Required: contains(requiredFields, fieldName),
+		if finalType, err := getPrimitiveTypeName("array", subTyp, true); err != nil {
+			return "", err
+		} else {
+			// only alias root arrays
+			if schema.Parent == nil {
+				array := Field{
+					Name:     name,
+					JSONName: "",
+					Type:     finalType,
+					Required: contains(schema.Required, name),
+					Description:  schema.Description,
+				}
+				g.Aliases[array.Name] = array
+			}
+			return finalType, nil
 		}
-
-		fields[f.Name] = f
 	}
+	return "[]interface{}", nil
+}
 
-	if len(missingTypes) > 0 {
-		return fields, fmt.Errorf("missing types for %s with errors %s",
-			strings.Join(missingTypes, ","), joinErrors(errors))
+// name: name of the struct (calculated by caller)
+// schema: detail incl properties & child objects
+// returns: generated type
+func (g *Generator) processObject(name string, schema *jsonschema.Schema) (typ string, err error) {
+	strct := Struct{
+		ID:          schema.ID(),
+		Name:        name,
+		Description: schema.Description,
+		Fields:      make(map[string]Field, len(schema.Properties)),
 	}
-
-	return fields, nil
+	// cache the object name in case any sub-schemas recursively reference it
+	schema.GeneratedType = "*"+name
+	// regular properties
+	for propKey, prop := range schema.Properties {
+		fieldName := getGolangName(propKey)
+		// calculate sub-schema name here, may not actually be used depending on type of schema!
+		subSchemaName := g.getSchemaName(fieldName, prop)
+		if fieldType, err := g.processSchema(subSchemaName, prop); err != nil {
+			return "", err
+		} else {
+			f := Field{
+				Name:     fieldName,
+				JSONName: propKey,
+				Type:     fieldType,
+				Required: contains(schema.Required, propKey),
+				Description:  prop.Description,
+			}
+			strct.Fields[f.Name] = f
+		}
+	}
+	// additionalProperties with typed sub-schema
+	if schema.AdditionalProperties != nil && schema.AdditionalProperties.AdditionalPropertiesBool == nil {
+		ap := (*jsonschema.Schema)(schema.AdditionalProperties)
+		apName := g.getSchemaName("", ap)
+		subTyp, err := g.processSchema(apName, ap)
+		if err != nil {
+			return "", err
+		}
+		mapTyp := "map[string]" + subTyp
+		if len(schema.Properties) == 0 {
+			// since there are no regular properties, we don't need to emit a struct for this object - return the
+			// additionalProperties map type.
+			return mapTyp, nil
+		} else {
+			// this struct will have both regular and additional properties
+			f := Field{
+				Name:     "AdditionalProperties",
+				JSONName: "-",
+				Type:     mapTyp,
+				Required: false,
+				Description:  "",
+			}
+			strct.Fields[f.Name] = f
+			// setting this will cause marshal code to be emitted in Output()
+			strct.AdditionalValueType = subTyp
+		}
+	}
+	// additionalProperties as either true (everything) or false (nothing)
+	if schema.AdditionalProperties != nil && schema.AdditionalProperties.AdditionalPropertiesBool != nil {
+		if *schema.AdditionalProperties.AdditionalPropertiesBool == true {
+			// everything is valid additional
+			subTyp := "map[string]interface{}"
+			f := Field{
+				Name:     "AdditionalProperties",
+				JSONName: "-",
+				Type:     subTyp,
+				Required: false,
+				Description:  "",
+			}
+			strct.Fields[f.Name] = f
+		} else {
+			// nothing
+		}
+	}
+	g.Structs[strct.Name] = strct
+	// objects are always a pointer
+	return getPrimitiveTypeName("object", name, true)
 }
 
 func contains(s []string, e string) bool {
@@ -214,112 +262,15 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func getTypeForField(parentTypeKey *url.URL, fieldName string, fieldGoName string,
-	fieldSchema *jsonschema.Schema, types map[string]*jsonschema.Schema, pointer bool) (typeName string, err error) {
-	// If there's no schema, or the field can be more than one type, we have to use interface{} and allow the caller to use type assertions to determine
-	// the actual underlying type.
-	if fieldSchema == nil {
-		return "interface{}", nil
+func getOrderedKeyNamesFromSchemaMap(m map[string]*jsonschema.Schema) []string {
+	keys := make([]string, len(m))
+	idx := 0
+	for k := range m {
+		keys[idx] = k
+		idx++
 	}
-
-	majorType, multiple := fieldSchema.Type()
-	if multiple {
-		return "interface{}", nil
-	}
-
-	var subType string
-
-	// Look up by named reference.
-	if fieldSchema.Reference != "" {
-		// Resolve reference URI relative to schema's ID (URI).
-		ref, err := url.Parse(fieldSchema.Reference)
-		if err != nil {
-			return "", err
-		}
-		ref = parentTypeKey.ResolveReference(ref)
-
-		if t, ok := types[ref.String()]; ok {
-			sn := getTypeName(ref, t, 1)
-			var isMultiple bool
-			majorType, isMultiple = t.Type()
-			if isMultiple {
-				// do nothing yet..
-			}
-			if majorType == "object" {
-				return getPrimitiveTypeName(majorType, sn, true)
-			} else {
-				// something else, recurse into the reference for the type
-				subType, err = getTypeForField(ref, fieldName, fieldGoName, t, types, true)
-				if err != nil {
-					return "undefined", err
-				}
-				return subType, nil
-			}
-		} else {
-			return "", fmt.Errorf("failed to resolve the reference %s", ref)
-		}
-	}
-
-	// Look up any embedded types.
-	if subType == "" && (majorType == "object" || majorType == "") {
-		// only additional properties and no regular properties
-		if len(fieldSchema.Properties) == 0 && len(fieldSchema.AdditionalProperties) > 0 {
-			if len(fieldSchema.AdditionalProperties) == 1 {
-				sn, _ := getTypeForField(parentTypeKey, fieldName, fieldGoName,
-					fieldSchema.AdditionalProperties[0], types, pointer)
-				subType = "map[string]" + sn
-				pointer = false
-			} else {
-				subType = "map[string]interface{}"
-				pointer = false
-			}
-		} else {
-			ref := joinURLFragmentPath(parentTypeKey, "properties/"+fieldName)
-
-			// Root schema without properties, try array item instead
-			if _, ok := types[ref.String()]; !ok && isRootSchemaKey(parentTypeKey) {
-				ref = joinURLFragmentPath(parentTypeKey, "arrayitems")
-			}
-
-			if parentType, ok := types[ref.String()]; ok {
-				sn := getTypeName(ref, parentType, 1)
-				subType = sn
-			} else {
-				subType = "undefined"
-			}
-		}
-	}
-
-	// Find named array references.
-	if majorType == "array" && subType == "" {
-		s, _ := getTypeForField(parentTypeKey, fieldName, fieldGoName, fieldSchema.Items, types, true)
-		subType = s
-	}
-
-	name, err := getPrimitiveTypeName(majorType, subType, pointer)
-
-	if err != nil {
-		return name, fmt.Errorf("failed to get the type for %s with error %s",
-			fieldGoName,
-			err.Error())
-	}
-
-	return name, nil
-}
-
-// isRootSchemaKey returns whether a given type key references the root schema.
-func isRootSchemaKey(typeKey *url.URL) bool {
-	return typeKey.Fragment == ""
-}
-
-// joinURLFragmentPath joins elem onto u.Fragment, adding a separating slash.
-func joinURLFragmentPath(base *url.URL, elem string) *url.URL {
-	url := *base
-	if url.Fragment == "" {
-		url.Fragment = "/"
-	}
-	url.Fragment = path.Join(url.Fragment, elem)
-	return &url
+	sort.Strings(keys)
+	return keys
 }
 
 func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name string, err error) {
@@ -338,6 +289,9 @@ func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name
 	case "null":
 		return "nil", nil
 	case "object":
+		if subType == "" {
+			return "error_creating_object", errors.New("can't create an object of an empty subtype")
+		}
 		if pointer {
 			return "*" + subType, nil
 		}
@@ -350,18 +304,17 @@ func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name
 		schemaType, subType)
 }
 
-// getTypeName makes a golang type name from an input reference in the form of #/definitions/address
-// The parts refers to the number of segments from the end to take as the name.
-func getTypeName(reference *url.URL, structType *jsonschema.Schema, n int) string {
-	if len(structType.Title) > 0 {
-		return getGolangName(structType.Title)
+// return a name for this (sub-)schema.
+func (g *Generator) getSchemaName(keyName string, schema *jsonschema.Schema) (string) {
+	if len(schema.Title) > 0 {
+		return getGolangName(schema.Title)
 	}
 
-	if isRootSchemaKey(reference) {
-		rootName := structType.Title
+	if schema.Parent == nil {
+		rootName := schema.Title
 
 		if rootName == "" {
-			rootName = structType.Description
+			rootName = schema.Description
 		}
 
 		if rootName == "" {
@@ -371,26 +324,20 @@ func getTypeName(reference *url.URL, structType *jsonschema.Schema, n int) strin
 		return getGolangName(rootName)
 	}
 
-	parts := strings.Split(reference.Fragment, "/")
-	partsToUse := parts[len(parts)-n:]
-
-	sb := bytes.Buffer{}
-
-	for _, p := range partsToUse {
-		sb.WriteString(getGolangName(p))
+	if keyName != "" {
+		return getGolangName(keyName)
 	}
 
-	result := sb.String()
-
-	if result == "" {
-		return "Root"
+	if schema.JSONKey != "" {
+		return getGolangName(schema.JSONKey)
+	}
+	if schema.Parent != nil && schema.Parent.JSONKey != "" {
+		// ugh...
+		return getGolangName(schema.Parent.JSONKey + "Item")
 	}
 
-	if structType.NameCount > 1 {
-		result = fmt.Sprintf("%v%v", result, structType.NameCount)
-	}
-
-	return result
+	g.anonCount ++
+	return fmt.Sprintf("Anonymous%d", g.anonCount)
 }
 
 // getGolangName strips invalid characters out of golang struct or field names.
@@ -453,6 +400,7 @@ type Struct struct {
 	// Description of the struct
 	Description string
 	Fields      map[string]Field
+	AdditionalValueType string
 }
 
 // Field defines the data required to generate a field in Go.
@@ -466,4 +414,5 @@ type Field struct {
 	Type string
 	// Required is set to true when the field is required.
 	Required bool
+	Description  string
 }

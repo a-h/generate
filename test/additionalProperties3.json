@@ -1,0 +1,18 @@
+{
+  "definitions": {
+    "StyleConfigIndex": {
+      "additionalProperties": {
+        "$ref": "#/definitions/VgMarkConfig"
+      },
+      "type": "object"
+    },
+    "VgMarkConfig": {
+      "properties": {
+        "stuff": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

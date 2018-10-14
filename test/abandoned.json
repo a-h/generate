@@ -13,6 +13,7 @@
         },
         "abandoned": {
             "type": "object",
+            "title": "Package List",
             "description": "List of packages marked as abandoned for this repository, the mark can be boolean or a package name/URL pointing to a recommended alternative."
         }
     }
