@@ -24,13 +24,15 @@ clean:
 JSON := $(wildcard test/*.json)
 GENERATED_SOURCE := $(patsubst %.json,%_gen/generated.go,$(JSON))
 test/%_gen/generated.go: test/%.json 
-	mkdir $(shell echo $^ | sed 's/.json/_gen/')
+	@echo "\n+ Generating code for $@"
+	@D=$(shell echo $^ | sed 's/.json/_gen/'); \
+	[ ! -d $$D ] && mkdir -p $$D || true
 	./schema-generate -o $@ -p $(shell echo $^ | sed 's/test\///; s/.json//')  $^
 
 .PHONY: test codecheck fmt lint vet
 
 test: $(BIN) $(GENERATED_SOURCE)
-	@echo "+ Executing tests for $(PKG)"
+	@echo "\n+ Executing tests for $(PKG)"
 	go test -v -race -cover $(PKG)/...
     
 

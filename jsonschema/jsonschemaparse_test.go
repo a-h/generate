@@ -20,7 +20,8 @@ func TestThatAMissingSchemaKeyResultsInAnError(t *testing.T) {
 	_, validerr := Parse(valid, &url.URL{Scheme:"file", Path:"jsonschemaparse_test.go"})
 
 	if invaliderr == nil {
-		t.Error("When the $schema key is missing from the root, the JSON Schema is not valid")
+		// it SHOULD be used in the root schema
+		// t.Error("When the $schema key is missing from the root, the JSON Schema is not valid")
 	}
 
 	if validerr != nil {

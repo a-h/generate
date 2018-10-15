@@ -201,6 +201,9 @@ func (g *Generator) processObject(name string, schema *jsonschema.Schema) (typ s
 				Required: contains(schema.Required, propKey),
 				Description:  prop.Description,
 			}
+			if f.Required {
+				strct.GenerateCode = true
+			}
 			strct.Fields[f.Name] = f
 		}
 	}
@@ -228,7 +231,8 @@ func (g *Generator) processObject(name string, schema *jsonschema.Schema) (typ s
 			}
 			strct.Fields[f.Name] = f
 			// setting this will cause marshal code to be emitted in Output()
-			strct.AdditionalValueType = subTyp
+			strct.GenerateCode = true
+			strct.AdditionalType = subTyp
 		}
 	}
 	// additionalProperties as either true (everything) or false (nothing)
@@ -398,9 +402,11 @@ type Struct struct {
 	// The golang name, e.g. "Address"
 	Name string
 	// Description of the struct
-	Description string
-	Fields      map[string]Field
-	AdditionalValueType string
+	Description  string
+	Fields       map[string]Field
+
+	GenerateCode bool
+	AdditionalType string
 }
 
 // Field defines the data required to generate a field in Go.

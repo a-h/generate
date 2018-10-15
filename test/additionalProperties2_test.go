@@ -34,16 +34,14 @@ func TestMarshalUnmarshal(t *testing.T) {
 					PoBox: &additionalProperties2.PoBox{
 						Suburb: "Smallville",
 					},
-					AdditionalProperties: map[string]*additionalProperties2.Hairy {
+					AdditionalProperties: map[string]map[string]*additionalProperties2.Anonymous1 {
 						"red": {
-							AdditionalProperties: map[string]*additionalProperties2.Anonymous1 {
-								"blue": {
-									Color: "green",
-									Conditions: []*additionalProperties2.ConditionsItem{
-										{Name: "dry"},
-									},
-									Density: 42.42,
+							"blue": {
+								Color: "green",
+								Conditions: []*additionalProperties2.ConditionsItems{
+									{Name: "dry"},
 								},
+								Density: 42.42,
 							},
 						},
 						"orange": {
@@ -62,11 +60,11 @@ func TestMarshalUnmarshal(t *testing.T) {
 					t.Fatal("not enough additionalProperties")
 				}
 
-				if prop.Property7.AdditionalProperties["red"].AdditionalProperties["blue"].Color != "green" {
+				if prop.Property7.AdditionalProperties["red"]["blue"].Color != "green" {
 					t.Fatal("wrong nested value")
 				}
 
-				if prop.Property7.AdditionalProperties["red"].AdditionalProperties["blue"].Density != 42.42 {
+				if prop.Property7.AdditionalProperties["red"]["blue"].Density != 42.42 {
 					t.Fatal("wrong nested value")
 				}
 			},
@@ -88,6 +86,25 @@ func TestMarshalUnmarshal(t *testing.T) {
 			}
 
 			p.Validation(t, strct2)
+
+			if str, err := json.MarshalIndent(&strct2, "", "  "); err != nil {
+				t.Fatal(err)
+			} else {
+				log.Println(string(str))
+				strct3 := &additionalProperties2.AdditionalProperties{}
+				if err := json.Unmarshal(str, &strct3); err != nil {
+					t.Fatal(err)
+				}
+
+				if reflect.DeepEqual(p.Strct, strct3) {
+					log.Fatal("unmarshaled struct != given struct")
+				}
+
+				p.Validation(t, strct3)
+
+
+			}
+
 		}
 	}
 }
