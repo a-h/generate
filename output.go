@@ -121,10 +121,10 @@ func (strct *%s) MarshalJSON() ([]byte, error) {
 				// currently only objects are supported
 				if strings.HasPrefix(f.Type, "*") {
 					imports["errors"] = true
-					fmt.Fprintf(w, `    if strct.%[1]s == nil {
+					fmt.Fprintf(w, `    if strct.%s == nil {
         return nil, errors.New("%s is a required field")
     }
-`, f.Name)
+`, f.Name, f.JSONName)
 				} else {
 					fmt.Fprintf(w, "    // only required object types supported for marshal checking (for now)\n")
 				}

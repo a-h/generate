@@ -3,17 +3,11 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-
 	"github.com/a-h/generate"
-	"github.com/a-h/generate/jsonschema"
-	"net/url"
-	"path"
 )
 
 var (
@@ -42,51 +36,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	schemas := make([]*jsonschema.Schema, len(inputFiles))
-	for i, file := range inputFiles {
-		b, err := ioutil.ReadFile(file)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Failed to read the input file with error ", err)
-			return
-		}
-
-		abPath, err := Abs(file)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Failed to normalise input path with error ", err)
-			return
-		}
-
-		fileURI := url.URL{
-			Scheme: "file",
-			Path: abPath,
-		}
-
-		schemas[i], err = jsonschema.Parse(string(b), &fileURI)
-		if err != nil {
-			if jsonError, ok := err.(*json.SyntaxError); ok {
-				line, character, lcErr := lineAndCharacter(b, int(jsonError.Offset))
-				fmt.Fprintf(os.Stderr, "Cannot parse JSON schema due to a syntax error at %s line %d, character %d: %v\n", file, line, character, jsonError.Error())
-				if lcErr != nil {
-					fmt.Fprintf(os.Stderr, "Couldn't find the line and character position of the error due to error %v\n", lcErr)
-				}
-				return
-			}
-			if jsonError, ok := err.(*json.UnmarshalTypeError); ok {
-				line, character, lcErr := lineAndCharacter(b, int(jsonError.Offset))
-				fmt.Fprintf(os.Stderr, "The JSON type '%v' cannot be converted into the Go '%v' type on struct '%s', field '%v'. See input file %s line %d, character %d\n", jsonError.Value, jsonError.Type.Name(), jsonError.Struct, jsonError.Field, file, line, character)
-				if lcErr != nil {
-					fmt.Fprintf(os.Stderr, "Couldn't find the line and character position of the error due to error %v\n", lcErr)
-				}
-				return
-			}
-			fmt.Fprintf(os.Stderr, "Failed to parse the input JSON schema file %s with error %v\n", file, err)
-			return
-		}
+	schemas, err := generate.ReadInputFiles(inputFiles)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 
 	g := generate.New(schemas...)
 
-	err := g.CreateTypes()
+	err = g.CreateTypes()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failure generating structs: ", err)
 		os.Exit(1)
@@ -104,36 +62,4 @@ func main() {
 	}
 
 	generate.Output(w, g, *p)
-}
-
-func lineAndCharacter(bytes []byte, offset int) (line int, character int, err error) {
-	lf := byte(0x0A)
-
-	if offset > len(bytes) {
-		return 0, 0, fmt.Errorf("couldn't find offset %d in %d bytes", offset, len(bytes))
-	}
-
-	// Humans tend to count from 1.
-	line = 1
-
-	for i, b := range bytes {
-		if b == lf {
-			line++
-			character = 0
-		}
-		character++
-		if i == offset {
-			return line, character, nil
-		}
-	}
-
-	return 0, 0, fmt.Errorf("couldn't find offset %d in %d bytes", offset, len(bytes))
-}
-
-func Abs(name string) (string, error) {
-	if path.IsAbs(name) {
-		return name, nil
-	}
-	wd, err := os.Getwd()
-	return path.Join(wd, name), err
 }

@@ -1,4 +1,4 @@
-package jsonschema
+package generate
 
 import (
 	"errors"

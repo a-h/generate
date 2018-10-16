@@ -1,4 +1,4 @@
-PKG := github.com/a-h/generate
+PKG := .
 CMD := $(PKG)/cmd/schema-generate
 BIN := schema-generate
 
@@ -8,7 +8,7 @@ BIN := schema-generate
 
 all: clean $(BIN)
 
-$(BIN): generator.go jsonschema/jsonschema.go cmd/schema-generate/main.go
+$(BIN): generator.go jsonschema.go cmd/schema-generate/main.go
 	@echo "+ Building $@"
 	CGO_ENABLED="0" go build -v -o $@ $(CMD)
 

@@ -11,7 +11,8 @@ func TestAbandoned(t *testing.T) {
 		Name: "jonson",
 		Abandoned: &abandoned.PackageList{},
 	}
-	if r.Abandoned != nil {
+	// the test is the presence of the Abandoned field
+	if r.Abandoned == nil {
 		t.Fatal("thats the test")
 	}
 }

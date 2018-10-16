@@ -75,7 +75,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 		if str, err := json.MarshalIndent(&p.Strct, "", "  "); err != nil {
 			t.Fatal(err)
 		} else {
-			log.Println(string(str))
+			//log.Println(string(str))
 			strct2 := &additionalProperties2.AdditionalProperties{}
 			if err := json.Unmarshal(str, &strct2); err != nil {
 				t.Fatal(err)
@@ -90,7 +90,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 			if str, err := json.MarshalIndent(&strct2, "", "  "); err != nil {
 				t.Fatal(err)
 			} else {
-				log.Println(string(str))
+				//log.Println(string(str))
 				strct3 := &additionalProperties2.AdditionalProperties{}
 				if err := json.Unmarshal(str, &strct3); err != nil {
 					t.Fatal(err)
