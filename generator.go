@@ -300,22 +300,12 @@ func (g *Generator) getSchemaName(keyName string, schema *Schema) string {
 		return getGolangName(schema.Title)
 	}
 
-	if schema.Parent == nil {
-		rootName := schema.Title
-
-		if rootName == "" {
-			rootName = schema.Description
-		}
-
-		if rootName == "" {
-			rootName = "Root"
-		}
-
-		return getGolangName(rootName)
-	}
-
 	if keyName != "" {
 		return getGolangName(keyName)
+	}
+
+	if schema.Parent == nil {
+		return "Root"
 	}
 
 	if schema.JSONKey != "" {
