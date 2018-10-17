@@ -38,24 +38,7 @@ func (r *RefResolver) Init() error {
 	return nil
 }
 
-/*
-func (r *RefResolver) SchemaContainsPath(schema *Schema, path string) (bool, error) {
-	id := schema.GetRoot().ID()
-
-	if paths, ok := r.pathToSchema[id]; !ok {
-		return false, errors.New("schema id not found in refresolver: "+id)
-
-	} else {
-		if _, ok := paths[path]; !ok {
-			return false, errors.New("path not found in refresolver: "+id+path)
-
-		} else {
-			return true, nil
-		}
-	}
-}
-*/
-
+// recusively generate path to schema
 func getPath(schema *Schema, path string) string {
 	path = schema.PathElement + "/" + path
 	if schema.IsRoot() {
@@ -72,7 +55,6 @@ func (r *RefResolver) GetPath(schema *Schema) string {
 	} else {
 		return getPath(schema.Parent, schema.PathElement)
 	}
-
 }
 
 func (r *RefResolver) GetSchemaByReference(schema *Schema) (*Schema, error) {
