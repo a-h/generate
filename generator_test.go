@@ -1,10 +1,10 @@
 package generate
 
 import (
-	"testing"
-	"strings"
 	"encoding/json"
 	"reflect"
+	"strings"
+	"testing"
 )
 
 func TestThatCapitalisationOccursCorrectly(t *testing.T) {
@@ -42,79 +42,32 @@ func TestThatCapitalisationOccursCorrectly(t *testing.T) {
 	}
 }
 
-/*
-func TestThatStructsAreNamedWell(t *testing.T) {
-	tests := []struct {
-		input    string
-		schema   Schema
-		expected string
-	}{
-		{
-			input:    "/definitions/address",
-			expected: "Address",
-		},
-		{
-			input:    "/Example",
-			expected: "Example",
-		},
-		{
-			input:    "/Example",
-			expected: "Example",
-			schema: Schema{
-				NameCount: 1,
-			},
-		},
-		{
-			input:    "/Example",
-			expected: "Example2",
-			schema: Schema{
-				NameCount: 2,
-			},
-		},
-		{
-			input:    "",
-			expected: "TheRootName",
-			schema: Schema{
-				Title: "TheRootName",
-			},
-		},
-	}
-
-	for idx, test := range tests {
-		actual := getTypeName(&url.URL{Fragment: test.input}, &test.schema, 1)
-		if actual != test.expected {
-			t.Errorf("Test %d failed: For input \"%s\", expected \"%s\", got \"%s\"", idx, test.input, test.expected, actual)
-		}
-	}
-}
-*/
-
 func TestFieldGeneration(t *testing.T) {
 	properties := map[string]*Schema{
 		"property1": {TypeValue: "string"},
 		"property2": {Reference: "#/definitions/address"},
 		// test sub-objects with properties or additionalProperties
-		"property3": {TypeValue: "object", Title: "SubObj1", Properties: map[string]*Schema{ "name": {TypeValue: "string"}}},
+		"property3": {TypeValue: "object", Title: "SubObj1", Properties: map[string]*Schema{"name": {TypeValue: "string"}}},
 		"property4": {TypeValue: "object", Title: "SubObj2", AdditionalProperties: &AdditionalProperties{TypeValue: "integer"}},
 		// test sub-objects with properties composed of objects
-		"property5": {TypeValue: "object", Title: "SubObj3", Properties: map[string]*Schema{ "SubObj3a": {TypeValue: "object", Properties: map[string]*Schema{"subproperty1": {TypeValue: "integer"}}}}},
+		"property5": {TypeValue: "object", Title: "SubObj3", Properties: map[string]*Schema{"SubObj3a": {TypeValue: "object", Properties: map[string]*Schema{"subproperty1": {TypeValue: "integer"}}}}},
 		// test sub-objects with additionalProperties composed of objects
 		"property6": {TypeValue: "object", Title: "SubObj4", AdditionalProperties: &AdditionalProperties{TypeValue: "object", Title: "SubObj4a", Properties: map[string]*Schema{"subproperty1": {TypeValue: "integer"}}}},
 		// test sub-objects without titles
 		"property7": {TypeValue: "object"},
 		// test sub-objects with properties AND additionalProperties
-		"property8": {TypeValue: "object", Title: "SubObj5", Properties: map[string]*Schema{ "name": {TypeValue: "string"}}, AdditionalProperties: &AdditionalProperties{TypeValue: "integer"}},
+		"property8": {TypeValue: "object", Title: "SubObj5", Properties: map[string]*Schema{"name": {TypeValue: "string"}}, AdditionalProperties: &AdditionalProperties{TypeValue: "integer"}},
 	}
 
 	requiredFields := []string{"property2"}
 
 	root := Schema{
 		SchemaType: "http://localhost",
-		Title: "TestFieldGeneration",
-		TypeValue: "object",
+		Title:      "TestFieldGeneration",
+		TypeValue:  "object",
 		Properties: properties,
 		Definitions: map[string]*Schema{
-			"address": {TypeValue:"object"},
+			"address": {TypeValue: "object"},
 		},
 		Required: requiredFields,
 	}
@@ -141,7 +94,6 @@ func TestFieldGeneration(t *testing.T) {
 	testField(g.Structs["TestFieldGeneration"].Fields["Property7"], "property7", "Property7", "*Property7", false, t)
 	testField(g.Structs["TestFieldGeneration"].Fields["Property8"], "property8", "Property8", "*SubObj5", false, t)
 
-
 	testField(g.Structs["SubObj1"].Fields["Name"], "name", "Name", "string", false, t)
 	testField(g.Structs["SubObj3"].Fields["SubObj3a"], "SubObj3a", "SubObj3a", "*SubObj3a", false, t)
 	testField(g.Structs["SubObj4a"].Fields["Subproperty1"], "subproperty1", "Subproperty1", "int", false, t)
@@ -157,7 +109,6 @@ func TestFieldGeneration(t *testing.T) {
 		}
 	}
 }
-
 
 func TestFieldGenerationWithArrayReferences(t *testing.T) {
 	properties := map[string]*Schema{
@@ -187,13 +138,13 @@ func TestFieldGenerationWithArrayReferences(t *testing.T) {
 
 	root := Schema{
 		SchemaType: "http://localhost",
-		Title: "TestFieldGenerationWithArrayReferences",
-		TypeValue: "object",
+		Title:      "TestFieldGenerationWithArrayReferences",
+		TypeValue:  "object",
 		Properties: properties,
 		Definitions: map[string]*Schema{
-			"address": { TypeValue:"object" },
-			"outer": { TypeValue:"array", Items: &Schema{ Reference: "#/definitions/inner" }},
-			"inner": { TypeValue: "object" },
+			"address": {TypeValue: "object"},
+			"outer":   {TypeValue: "array", Items: &Schema{Reference: "#/definitions/inner"}},
+			"inner":   {TypeValue: "object"},
 		},
 		Required: requiredFields,
 	}
@@ -218,7 +169,6 @@ func TestFieldGenerationWithArrayReferences(t *testing.T) {
 	testField(g.Structs["TestFieldGenerationWithArrayReferences"].Fields["Property4"], "property4", "Property4", "[][]*Inner", false, t)
 }
 
-
 func testField(actual Field, expectedJSONName string, expectedName string, expectedType string, expectedToBeRequired bool, t *testing.T) {
 	if actual.JSONName != expectedJSONName {
 		t.Errorf("JSONName - expected \"%s\", got \"%s\"", expectedJSONName, actual.JSONName)
@@ -233,7 +183,6 @@ func testField(actual Field, expectedJSONName string, expectedName string, expec
 		t.Errorf("Required - expected \"%v\", got \"%v\"", expectedToBeRequired, actual.Required)
 	}
 }
-
 
 func TestNestedStructGeneration(t *testing.T) {
 	root := &Schema{}
@@ -316,7 +265,6 @@ func TestEmptyNestedStructGeneration(t *testing.T) {
 		t.Errorf("Expected that the nested type property1 is generated as a struct, so the property type should be *Property1, but was %s.", results["Example"].Fields["Property1"].Type)
 	}
 }
-
 
 func TestStructNameExtractor(t *testing.T) {
 	m := make(map[string]Struct)
@@ -735,59 +683,6 @@ func TestThatUnmarshallingIsPossible(t *testing.T) {
 		}
 	}
 }
-
-/*
-func TestThatRootTypeKeyIsCorrectlyAssessed(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected bool
-	}{
-		{
-			name:     "URL without fragment",
-			input:    "http://example.com/schema",
-			expected: true,
-		},
-		{
-			name:     "URL with fragment",
-			input:    "http://example.com/schema#/definitions/foo",
-			expected: false,
-		},
-		{
-			name:     "simple ID without fragment",
-			input:    "/Test",
-			expected: true,
-		},
-		{
-			name:     "simple ID with fragment",
-			input:    "/Test#/definitions/foo",
-			expected: false,
-		},
-		{
-			name:     "no ID",
-			input:    "#",
-			expected: true,
-		},
-		{
-			name:     "empty",
-			input:    "",
-			expected: true,
-		},
-	}
-
-	for _, test := range tests {
-		key, err := url.Parse(test.input)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		actual := isRootSchemaKey(key)
-		if actual != test.expected {
-			t.Errorf("Test %q failed: for input %q, expected %t, got %t", test.name, test.input, test.expected, actual)
-		}
-	}
-}
-*/
 
 func TestTypeAliases(t *testing.T) {
 	tests := []struct {

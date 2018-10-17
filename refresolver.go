@@ -2,9 +2,9 @@ package generate
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"strings"
-	"fmt"
 )
 
 type RefResolver struct {
@@ -12,7 +12,6 @@ type RefResolver struct {
 	//           k=uri     v=Schema
 	pathToSchema map[string]*Schema
 }
-
 
 func NewRefResolver(schemas []*Schema) *RefResolver {
 	return &RefResolver{
@@ -96,7 +95,6 @@ func (r *RefResolver) GetSchemaByReference(schema *Schema) (*Schema, error) {
 		}
 	}
 }
-
 
 func (r *RefResolver) mapPaths(schema *Schema) error {
 
@@ -199,7 +197,7 @@ func (r *RefResolver) InsertURI(uri string, schema *Schema) error {
 	docId := schema.GetRoot().ID()
 
 	if _, ok := r.pathToSchema[uri]; ok {
-		return errors.New("attempted to add duplicate uri: "+docId+"/"+uri)
+		return errors.New("attempted to add duplicate uri: " + docId + "/" + uri)
 	} else {
 		r.pathToSchema[uri] = schema
 	}

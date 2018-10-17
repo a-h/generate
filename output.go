@@ -1,11 +1,11 @@
 package generate
 
 import (
-	"sort"
-	"io"
-	"fmt"
-	"strings"
 	"bytes"
+	"fmt"
+	"io"
+	"sort"
+	"strings"
 )
 
 func getOrderedFieldNames(m map[string]Field) []string {
@@ -39,7 +39,6 @@ func Output(w io.Writer, g *Generator, pkg string) {
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "package %v\n", cleanPackageName(pkg))
 
-
 	// write all the code into a buffer, compiler functions will return list of imports
 	// write list of imports into main output stream, followed by the code
 	buf := new(bytes.Buffer)
@@ -62,7 +61,6 @@ func Output(w io.Writer, g *Generator, pkg string) {
 	}
 
 	w.Write(buf.Bytes())
-
 
 	for _, k := range getOrderedFieldNames(aliases) {
 		a := aliases[k]
@@ -187,7 +185,7 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
 	for _, fieldKey := range getOrderedFieldNames(s.Fields) {
 		f := s.Fields[fieldKey]
 		if f.Required {
-			fmt.Fprintf(w, "    %sReceived := false\n", f.Name)
+			fmt.Fprintf(w, "    %sReceived := false\n", f.JSONName)
 		}
 	}
 	fmt.Fprintf(w, `
@@ -195,6 +193,7 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
     if err := json.Unmarshal(b, &jsonMap); err != nil {
         return err
     }
+
     // parse all the defined properties
     for k, v := range jsonMap {
         switch k {
@@ -211,9 +210,11 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
              }
 `, f.JSONName, f.Name)
 		if f.Required {
-			fmt.Fprintf(w, "            %sReceived = true\n", f.Name)
+			fmt.Fprintf(w, "            %sReceived = true\n", f.JSONName)
 		}
 	}
+
+	// TODO: if additionalProperties == false emit default case to return error
 
 	// handle additional property
 	if s.AdditionalType != "" {
@@ -236,7 +237,7 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
 `, s.AdditionalType, initialiser, s.AdditionalType, addressOfInitialiser)
 	}
 	fmt.Fprintf(w, "        }\n") // switch
-	fmt.Fprintf(w, "    }\n") // for
+	fmt.Fprintf(w, "    }\n")     // for
 
 	// check all Required fields were received
 	for _, fieldKey := range getOrderedFieldNames(s.Fields) {
@@ -246,11 +247,10 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
 			fmt.Fprintf(w, `    // check if %s (a required property) was received
     if !%sReceived {
         return errors.New("%s is required but was not present")
-}
-`, f.JSONName, f.Name, f.JSONName)
+    }
+`, f.JSONName, f.JSONName, f.JSONName)
 		}
 	}
-
 
 	fmt.Fprintf(w, "    return nil\n")
 	fmt.Fprintf(w, "}\n") // UnmarshalJSON
@@ -258,11 +258,10 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
 
 func getPrimitiveInitialiser(typ string) (string, bool) {
 	// strip *pointer dereference symbol so we can use in declaration
-
 	deref := strings.Replace(typ, "*", "", 1)
 	switch {
 	case strings.HasPrefix(typ, "map"):
-		return typ+"{}", false
+		return typ + "{}", false
 	case strings.HasPrefix(deref, "int"):
 		return "0", false
 	case strings.HasPrefix(deref, "float"):

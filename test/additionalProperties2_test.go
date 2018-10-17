@@ -1,19 +1,19 @@
 package test
 
 import (
-	"testing"
-	"github.com/a-h/generate/test/additionalProperties2_gen"
 	"encoding/json"
+	"github.com/a-h/generate/test/additionalProperties2_gen"
 	"log"
 	"reflect"
+	"testing"
 )
 
 func TestMarshalUnmarshal(t *testing.T) {
 	params := []struct {
-		Name string
-		Strct additionalProperties2.AdditionalProperties
+		Name       string
+		Strct      additionalProperties2.AdditionalProperties
 		Validation func(t *testing.T, prop *additionalProperties2.AdditionalProperties)
-	} {
+	}{
 		{
 			Name: "Base Object",
 			Strct: additionalProperties2.AdditionalProperties{
@@ -28,13 +28,13 @@ func TestMarshalUnmarshal(t *testing.T) {
 		{
 			Name: "Property7",
 			Strct: additionalProperties2.AdditionalProperties{
-				Property7: &additionalProperties2.Property7 {
+				Property7: &additionalProperties2.Property7{
 					StreetNumber: 69,
-					StreetName: "Elm St",
+					StreetName:   "Elm St",
 					PoBox: &additionalProperties2.PoBox{
 						Suburb: "Smallville",
 					},
-					AdditionalProperties: map[string]map[string]*additionalProperties2.Anonymous1 {
+					AdditionalProperties: map[string]map[string]*additionalProperties2.Anonymous1{
 						"red": {
 							"blue": {
 								Color: "green",
@@ -44,9 +44,7 @@ func TestMarshalUnmarshal(t *testing.T) {
 								Density: 42.42,
 							},
 						},
-						"orange": {
-
-						},
+						"orange": {},
 					},
 				},
 			},
@@ -101,7 +99,6 @@ func TestMarshalUnmarshal(t *testing.T) {
 				}
 
 				p.Validation(t, strct3)
-
 
 			}
 

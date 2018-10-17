@@ -1,17 +1,17 @@
 package test
 
 import (
-	"testing"
 	"encoding/json"
+	"testing"
 	"github.com/a-h/generate/test/example1_gen"
 )
 
 func TestExample1(t *testing.T) {
 	params := []struct {
-		Name string
-		Data string
+		Name           string
+		Data           string
 		ExpectedResult bool
-	} {
+	}{
 		{
 			Name: "Blue Sky",
 			Data: `{
@@ -20,7 +20,6 @@ func TestExample1(t *testing.T) {
 				"price": 99.99,
 				"tags": [ "happy" ] }`,
 			ExpectedResult: true,
-
 		},
 		{
 			Name: "Missing Price",
@@ -41,9 +40,8 @@ func TestExample1(t *testing.T) {
 			}
 		} else {
 			if !param.ExpectedResult {
-				t.Fatal("Expected failure, got success: "+param.Name)
+				t.Fatal("Expected failure, got success: " + param.Name)
 			}
 		}
 	}
 }
-

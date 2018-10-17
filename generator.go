@@ -1,20 +1,20 @@
 package generate
 
 import (
-	"fmt"
 	"bytes"
+	"errors"
+	"fmt"
+	"sort"
 	"strings"
 	"unicode"
-	"errors"
-	"sort"
 )
 
 // Generator will produce structs from the JSON schema.
 type Generator struct {
-	schemas   []*Schema
-	resolver  *RefResolver
-	Structs   map[string]Struct
-	Aliases   map[string]Field
+	schemas  []*Schema
+	resolver *RefResolver
+	Structs  map[string]Struct
+	Aliases  map[string]Field
 	// cache for reference types; k=url v=type
 	refs      map[string]string
 	anonCount int
@@ -23,11 +23,11 @@ type Generator struct {
 // New creates an instance of a generator which will produce structs.
 func New(schemas ...*Schema) *Generator {
 	return &Generator{
-		schemas: schemas,
+		schemas:  schemas,
 		resolver: NewRefResolver(schemas),
-		Structs: make(map[string]Struct),
-		Aliases: make(map[string]Field),
-		refs:    make(map[string]string),
+		Structs:  make(map[string]Struct),
+		Aliases:  make(map[string]Field),
+		refs:     make(map[string]string),
 	}
 }
 
@@ -46,12 +46,12 @@ func (g *Generator) CreateTypes() (err error) {
 		} else {
 			// ugh: if it was anything but a struct the type will not be the name...
 			if rootType != "*"+name {
-				a := Field {
-					Name:     name,
-					JSONName: "",
-					Type:     rootType,
-					Required: false,
-					Description:  schema.Description,
+				a := Field{
+					Name:        name,
+					JSONName:    "",
+					Type:        rootType,
+					Required:    false,
+					Description: schema.Description,
 				}
 				g.Aliases[a.Name] = a
 			}
@@ -74,10 +74,10 @@ func (g *Generator) processDefinitions(schema *Schema) error {
 func (g *Generator) processReference(schema *Schema) (string, error) {
 	schemaPath := g.resolver.GetPath(schema)
 	if schema.Reference == "" {
-		return "", errors.New("processReference empty reference: "+ schemaPath)
+		return "", errors.New("processReference empty reference: " + schemaPath)
 	}
 	if refSchema, err := g.resolver.GetSchemaByReference(schema); err != nil {
-		return "", errors.New("processReference: reference \""+schema.Reference+"\" not found at \""+ schemaPath +"\"")
+		return "", errors.New("processReference: reference \"" + schema.Reference + "\" not found at \"" + schemaPath + "\"")
 	} else {
 		if refSchema.GeneratedType == "" {
 			// reference is not resolved yet. Do that now.
@@ -148,7 +148,7 @@ func (g *Generator) processSchema(schemaName string, schema *Schema) (typ string
 func (g *Generator) processArray(name string, schema *Schema) (typeStr string, err error) {
 	if schema.Items != nil {
 		// subType: fallback name in case this array contains inline object without a title
-		subName := g.getSchemaName(name + "Items", schema.Items)
+		subName := g.getSchemaName(name+"Items", schema.Items)
 		subTyp, err := g.processSchema(subName, schema.Items)
 		if err != nil {
 			return "", err
@@ -159,11 +159,11 @@ func (g *Generator) processArray(name string, schema *Schema) (typeStr string, e
 			// only alias root arrays
 			if schema.Parent == nil {
 				array := Field{
-					Name:     name,
-					JSONName: "",
-					Type:     finalType,
-					Required: contains(schema.Required, name),
-					Description:  schema.Description,
+					Name:        name,
+					JSONName:    "",
+					Type:        finalType,
+					Required:    contains(schema.Required, name),
+					Description: schema.Description,
 				}
 				g.Aliases[array.Name] = array
 			}
@@ -184,7 +184,7 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 		Fields:      make(map[string]Field, len(schema.Properties)),
 	}
 	// cache the object name in case any sub-schemas recursively reference it
-	schema.GeneratedType = "*"+name
+	schema.GeneratedType = "*" + name
 	// regular properties
 	for propKey, prop := range schema.Properties {
 		fieldName := getGolangName(propKey)
@@ -194,11 +194,11 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 			return "", err
 		} else {
 			f := Field{
-				Name:     fieldName,
-				JSONName: propKey,
-				Type:     fieldType,
-				Required: contains(schema.Required, propKey),
-				Description:  prop.Description,
+				Name:        fieldName,
+				JSONName:    propKey,
+				Type:        fieldType,
+				Required:    contains(schema.Required, propKey),
+				Description: prop.Description,
 			}
 			if f.Required {
 				strct.GenerateCode = true
@@ -222,11 +222,11 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 		} else {
 			// this struct will have both regular and additional properties
 			f := Field{
-				Name:     "AdditionalProperties",
-				JSONName: "-",
-				Type:     mapTyp,
-				Required: false,
-				Description:  "",
+				Name:        "AdditionalProperties",
+				JSONName:    "-",
+				Type:        mapTyp,
+				Required:    false,
+				Description: "",
 			}
 			strct.Fields[f.Name] = f
 			// setting this will cause marshal code to be emitted in Output()
@@ -240,11 +240,11 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 			// everything is valid additional
 			subTyp := "map[string]interface{}"
 			f := Field{
-				Name:     "AdditionalProperties",
-				JSONName: "-",
-				Type:     subTyp,
-				Required: false,
-				Description:  "",
+				Name:        "AdditionalProperties",
+				JSONName:    "-",
+				Type:        subTyp,
+				Required:    false,
+				Description: "",
 			}
 			strct.Fields[f.Name] = f
 		} else {
@@ -308,7 +308,7 @@ func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name
 }
 
 // return a name for this (sub-)schema.
-func (g *Generator) getSchemaName(keyName string, schema *Schema) (string) {
+func (g *Generator) getSchemaName(keyName string, schema *Schema) string {
 	if len(schema.Title) > 0 {
 		return getGolangName(schema.Title)
 	}
@@ -339,7 +339,7 @@ func (g *Generator) getSchemaName(keyName string, schema *Schema) (string) {
 		return getGolangName(schema.Parent.JSONKey + "Item")
 	}
 
-	g.anonCount ++
+	g.anonCount++
 	return fmt.Sprintf("Anonymous%d", g.anonCount)
 }
 
@@ -401,10 +401,10 @@ type Struct struct {
 	// The golang name, e.g. "Address"
 	Name string
 	// Description of the struct
-	Description  string
-	Fields       map[string]Field
+	Description string
+	Fields      map[string]Field
 
-	GenerateCode bool
+	GenerateCode   bool
 	AdditionalType string
 }
 
@@ -418,6 +418,6 @@ type Field struct {
 	// from the JSON schema.
 	Type string
 	// Required is set to true when the field is required.
-	Required bool
-	Description  string
+	Required    bool
+	Description string
 }

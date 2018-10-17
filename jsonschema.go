@@ -34,8 +34,8 @@ type Schema struct {
 
 	// Properties, Required and AdditionalProperties describe an object's child instances.
 	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.5
-	Properties           map[string]*Schema
-	Required             []string
+	Properties map[string]*Schema
+	Required   []string
 
 	// "additionalProperties": {...}
 	AdditionalProperties *AdditionalProperties
@@ -77,12 +77,11 @@ type Schema struct {
 	GeneratedType string `json:"-"`
 }
 
-
 // UnmarshalJSON handles unmarshalling AdditionalProperties from JSON.
 func (ap *AdditionalProperties) UnmarshalJSON(data []byte) error {
 	var b bool
 	if err := json.Unmarshal(data, &b); err == nil {
-		*ap = (AdditionalProperties)(Schema { AdditionalPropertiesBool: &b })
+		*ap = (AdditionalProperties)(Schema{AdditionalPropertiesBool: &b})
 		return nil
 	}
 
@@ -192,10 +191,10 @@ func Parse(schema string, uri *url.URL) (*Schema, error) {
 
 	// validate root URI, it MUST be an absolute URI
 	if abs, err := url.Parse(s.ID()); err != nil {
-		return nil, errors.New("error parsing $id of document \""+uri.String()+"\": "+err.Error())
+		return nil, errors.New("error parsing $id of document \"" + uri.String() + "\": " + err.Error())
 	} else {
 		if !abs.IsAbs() {
-			return nil, errors.New("$id of document not absolute URI: \""+uri.String()+"\": \""+s.ID()+"\"")
+			return nil, errors.New("$id of document not absolute URI: \"" + uri.String() + "\": \"" + s.ID() + "\"")
 		}
 	}
 
@@ -238,7 +237,6 @@ func (schema *Schema) updatePathElements() {
 	}
 }
 
-
 func (schema *Schema) updateParentLinks() {
 	for k, d := range schema.Definitions {
 		d.JSONKey = k
@@ -264,7 +262,7 @@ func (schema *Schema) updateParentLinks() {
 func (schema *Schema) ensureSchemaKeyword() error {
 	check := func(k string, s *Schema) error {
 		if s.SchemaType != "" {
-			return errors.New("invalid $schema keyword: "+k)
+			return errors.New("invalid $schema keyword: " + k)
 		} else {
 			return s.ensureSchemaKeyword()
 		}
@@ -277,7 +275,8 @@ func (schema *Schema) ensureSchemaKeyword() error {
 	for k, d := range schema.Properties {
 		if err := check(k, d); err != nil {
 			return err
-		}	}
+		}
+	}
 	if schema.AdditionalProperties != nil {
 		if err := check("additionalProperties", (*Schema)(schema.AdditionalProperties)); err != nil {
 			return err
@@ -308,4 +307,3 @@ func (schema *Schema) FixMissingTypeValue() {
 func (schema *Schema) IsRoot() bool {
 	return schema.Parent == nil
 }
-

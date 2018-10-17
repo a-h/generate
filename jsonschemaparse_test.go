@@ -1,8 +1,8 @@
 package generate
 
 import (
-	"testing"
 	"net/url"
+	"testing"
 )
 
 func TestThatAMissingSchemaKeyResultsInAnError(t *testing.T) {
@@ -10,14 +10,14 @@ func TestThatAMissingSchemaKeyResultsInAnError(t *testing.T) {
         "title": "root"
     }`
 
-	_, invaliderr := Parse(invalid, &url.URL{Scheme:"file", Path:"jsonschemaparse_test.go"})
+	_, invaliderr := Parse(invalid, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 
 	valid := `{
         "$schema": "http://json-schema.org/schema#",
         "title": "root"
     }`
 
-	_, validerr := Parse(valid, &url.URL{Scheme:"file", Path:"jsonschemaparse_test.go"})
+	_, validerr := Parse(valid, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 
 	if invaliderr == nil {
 		// it SHOULD be used in the root schema
@@ -34,7 +34,7 @@ func TestThatTheRootSchemaCanBeParsed(t *testing.T) {
         "$schema": "http://json-schema.org/schema#",
         "title": "root"
     }`
-	so, err := Parse(s, &url.URL{Scheme:"file", Path:"jsonschemaparse_test.go"})
+	so, err := Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 
 	if err != nil {
 		t.Fatal("It should be possible to unmarshal a simple schema, but received error:", err)
@@ -61,7 +61,7 @@ func TestThatPropertiesCanBeParsed(t *testing.T) {
             }
         }
     }`
-	so, err := Parse(s, &url.URL{Scheme:"file", Path:"jsonschemaparse_test.go"})
+	so, err := Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 
 	if err != nil {
 		t.Fatal("It was not possible to unmarshal the schema:", err)
@@ -522,7 +522,7 @@ func TestThatPropertiesCanHaveMultipleTypes(t *testing.T) {
             }
         }
     }`
-	so, err := Parse(s, &url.URL{Scheme:"file", Path:"jsonschemaparse_test.go"})
+	so, err := Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 
 	if err != nil {
 		t.Fatal("It was not possible to unmarshal the schema:", err)
@@ -540,7 +540,7 @@ func TestThatPropertiesCanHaveMultipleTypes(t *testing.T) {
 
 func TestThatParsingInvalidValuesReturnsAnError(t *testing.T) {
 	s := `{ " }`
-	_, err := Parse(s, &url.URL{Scheme:"file", Path:"jsonschemaparse_test.go"})
+	_, err := Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 
 	if err == nil {
 		t.Fatal("Expected a parsing error, but got nil")
@@ -558,7 +558,7 @@ func TestThatDefaultsCanBeParsed(t *testing.T) {
             }
         }
     }`
-	so, err := Parse(s, &url.URL{Scheme:"file", Path:"jsonschemaparse_test.go"})
+	so, err := Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 
 	if err != nil {
 		t.Fatal("It was not possible to unmarshal the schema:", err)
