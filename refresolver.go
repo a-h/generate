@@ -59,7 +59,6 @@ func (r *RefResolver) GetPath(schema *Schema) string {
 
 func (r *RefResolver) GetSchemaByReference(schema *Schema) (*Schema, error) {
 	docId := schema.GetRoot().ID()
-
 	if url, err := url.Parse(docId); err != nil {
 		return nil, err
 	} else {
@@ -79,9 +78,7 @@ func (r *RefResolver) GetSchemaByReference(schema *Schema) (*Schema, error) {
 }
 
 func (r *RefResolver) mapPaths(schema *Schema) error {
-
 	rootURI := &url.URL{}
-
 	id := schema.ID()
 	if id == "" {
 		if err := r.InsertURI("#", schema); err != nil {
@@ -103,15 +100,12 @@ func (r *RefResolver) mapPaths(schema *Schema) error {
 			return err
 		}
 	}
-
 	r.updateURIs(schema, *rootURI, false, false)
-
 	return nil
 }
 
 // create a map of base URIs
 func (r *RefResolver) updateURIs(schema *Schema, baseURI url.URL, checkCurrentId bool, ignoreFragments bool) error {
-
 	// already done for root, and if schema sets a new base URI
 	if checkCurrentId {
 		id := schema.ID()
@@ -141,7 +135,6 @@ func (r *RefResolver) updateURIs(schema *Schema, baseURI url.URL, checkCurrentId
 			}
 		}
 	}
-
 	for k, subSchema := range schema.Definitions {
 		newBaseURI := baseURI
 		newBaseURI.Fragment += "/definitions/" + k
@@ -150,7 +143,6 @@ func (r *RefResolver) updateURIs(schema *Schema, baseURI url.URL, checkCurrentId
 		}
 		r.updateURIs(subSchema, newBaseURI, true, ignoreFragments)
 	}
-
 	for k, subSchema := range schema.Properties {
 		newBaseURI := baseURI
 		newBaseURI.Fragment += "/properties/" + k
@@ -159,19 +151,16 @@ func (r *RefResolver) updateURIs(schema *Schema, baseURI url.URL, checkCurrentId
 		}
 		r.updateURIs(subSchema, newBaseURI, true, ignoreFragments)
 	}
-
 	if schema.AdditionalProperties != nil {
 		newBaseURI := baseURI
 		newBaseURI.Fragment += "/additionalProperties"
 		r.updateURIs((*Schema)(schema.AdditionalProperties), newBaseURI, true, ignoreFragments)
 	}
-
 	if schema.Items != nil {
 		newBaseURI := baseURI
 		newBaseURI.Fragment += "/items"
 		r.updateURIs(schema.Items, newBaseURI, true, ignoreFragments)
 	}
-
 	return nil
 }
 

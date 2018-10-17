@@ -11,7 +11,6 @@ import (
 )
 
 func ReadInputFiles(inputFiles []string) ([]*Schema, error) {
-
 	schemas := make([]*Schema, len(inputFiles))
 	for i, file := range inputFiles {
 		b, err := ioutil.ReadFile(file)

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 	"unicode"
 )
@@ -33,7 +32,6 @@ func New(schemas ...*Schema) *Generator {
 
 // CreateTypes creates types from the JSON schemas, keyed by the golang name.
 func (g *Generator) CreateTypes() (err error) {
-
 	if err := g.resolver.Init(); err != nil {
 		return err
 	}
@@ -263,17 +261,6 @@ func contains(s []string, e string) bool {
 		}
 	}
 	return false
-}
-
-func getOrderedKeyNamesFromSchemaMap(m map[string]*Schema) []string {
-	keys := make([]string, len(m))
-	idx := 0
-	for k := range m {
-		keys[idx] = k
-		idx++
-	}
-	sort.Strings(keys)
-	return keys
 }
 
 func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name string, err error) {
