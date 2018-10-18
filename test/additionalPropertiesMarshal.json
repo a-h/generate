@@ -1,0 +1,89 @@
+{
+  "definitions": {
+    "thing": {
+      "type": "object"
+    },
+
+    "apRefNoProp": {
+      "additionalProperties": {
+        "$ref": "#/definitions/thing"
+      },
+      "type": "object"
+    },
+    "apRefProp": {
+      "properties": {
+        "stuff": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/thing"
+      },
+      "type": "object"
+    },
+    "apRefReqProp": {
+      "properties": {
+        "stuff": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/thing"
+      },
+      "required": [ "stuff" ],
+      "type": "object"
+    },
+
+
+    "apTrueNoProp": {
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "apFalseNoProp": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+
+
+    "apTrueProp": {
+      "properties": {
+        "stuff": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true,
+      "type": "object"
+    },
+    "apFalseProp": {
+      "properties": {
+        "stuff": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+
+
+    "apTrueReqProp": {
+      "properties": {
+        "stuff": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true,
+      "required": [ "stuff" ],
+      "type": "object"
+    },
+    "apFalseReqProp": {
+      "properties": {
+        "stuff": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [ "stuff" ],
+      "type": "object"
+    }
+  }
+}

@@ -213,7 +213,13 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 			return "", err
 		}
 		mapTyp := "map[string]" + subTyp
-		if len(schema.Properties) == 0 {
+		// If this object is inline property for another object, and only contains additional properties, we can
+		// collapse the structure down to a map.
+		//
+		// If this object is a definition and only contains additional properties, we can't do that or we end up with
+		// no struct
+		isDefinitionObject := strings.HasPrefix(schema.PathElement, "definitions")
+		if len(schema.Properties) == 0 && !isDefinitionObject {
 			// since there are no regular properties, we don't need to emit a struct for this object - return the
 			// additionalProperties map type.
 			return mapTyp, nil
@@ -245,8 +251,13 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 				Description: "",
 			}
 			strct.Fields[f.Name] = f
+			// setting this will cause marshal code to be emitted in Output()
+			strct.GenerateCode = true
+			strct.AdditionalType = "interface{}"
 		} else {
 			// nothing
+			strct.GenerateCode = true
+			strct.AdditionalType = "false"
 		}
 	}
 	g.Structs[strct.Name] = strct

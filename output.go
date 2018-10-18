@@ -41,26 +41,24 @@ func Output(w io.Writer, g *Generator, pkg string) {
 
 	// write all the code into a buffer, compiler functions will return list of imports
 	// write list of imports into main output stream, followed by the code
-	buf := new(bytes.Buffer)
+	codeBuf := new(bytes.Buffer)
 	imports := make(map[string]bool)
 
 	for _, k := range getOrderedStructNames(structs) {
 		s := structs[k]
 		if s.GenerateCode {
-			emitMarshalCode(buf, s, imports)
-			emitUnmarshalCode(buf, s, imports)
+			emitMarshalCode(codeBuf, s, imports)
+			emitUnmarshalCode(codeBuf, s, imports)
 		}
 	}
 
 	if len(imports) > 0 {
-		fmt.Fprintf(w, "import (\n")
+		fmt.Fprintf(w, "\nimport (\n")
 		for k := range imports {
 			fmt.Fprintf(w, "    \"%s\"\n", k)
 		}
 		fmt.Fprintf(w, ")\n")
 	}
-
-	w.Write(buf.Bytes())
 
 	for _, k := range getOrderedFieldNames(aliases) {
 		a := aliases[k]
@@ -95,6 +93,9 @@ func Output(w io.Writer, g *Generator, pkg string) {
 
 		fmt.Fprintln(w, "}")
 	}
+
+	// write code after structs for clarity
+	w.Write(codeBuf.Bytes())
 }
 
 func emitMarshalCode(w io.Writer, s Struct, imports map[string]bool) {
@@ -144,15 +145,16 @@ func (strct *%s) MarshalJSON() ([]byte, error) {
 		}
 	}
 	if s.AdditionalType != "" {
-		imports["fmt"] = true
+		if s.AdditionalType != "false" {
+			imports["fmt"] = true
 
-		if len(s.Fields) == 0 {
-			fmt.Fprintf(w, "    comma := false\n")
-		}
+			if len(s.Fields) == 0 {
+				fmt.Fprintf(w, "    comma := false\n")
+			}
 
-		fmt.Fprintf(w, "    // Marshal any additional Properties\n")
-		// Marshal any additional Properties
-		fmt.Fprintf(w, `    for k, v := range strct.AdditionalProperties {
+			fmt.Fprintf(w, "    // Marshal any additional Properties\n")
+			// Marshal any additional Properties
+			fmt.Fprintf(w, `    for k, v := range strct.AdditionalProperties {
 		if comma {
 			buf.WriteString(",")
 		}
@@ -165,6 +167,7 @@ func (strct *%s) MarshalJSON() ([]byte, error) {
         comma = true
 	}
 `)
+		}
 	}
 
 	fmt.Fprintf(w, `
@@ -188,16 +191,23 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
 			fmt.Fprintf(w, "    %sReceived := false\n", f.JSONName)
 		}
 	}
-	fmt.Fprintf(w, `
-    var jsonMap map[string]json.RawMessage
+	// setup initial unmarshal
+	fmt.Fprintf(w, `    var jsonMap map[string]json.RawMessage
     if err := json.Unmarshal(b, &jsonMap); err != nil {
         return err
-    }
+    }`)
 
+	// figure out if we need the "v" output of the range keyword
+	needVal := "_"
+	if len(s.Fields) > 0 || s.AdditionalType != "false" {
+		needVal = "v"
+	}
+	// start the loop
+	fmt.Fprintf(w, `
     // parse all the defined properties
-    for k, v := range jsonMap {
+    for k, %s := range jsonMap {
         switch k {
-`)
+`, needVal)
 	// handle defined properties
 	for _, fieldKey := range getOrderedFieldNames(s.Fields) {
 		f := s.Fields[fieldKey]
@@ -214,27 +224,27 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
 		}
 	}
 
-	// TODO: if additionalProperties == false emit default case to return error
-
 	// handle additional property
 	if s.AdditionalType != "" {
-		// now handle additional values
-		initialiser, isPointer := getPrimitiveInitialiser(s.AdditionalType)
-		addressOfInitialiser := "&"
-		if !isPointer {
-			addressOfInitialiser = ""
-		}
-		fmt.Fprintf(w, `        default:
+		if s.AdditionalType == "false" {
+			// all unknown properties are not allowed
+			imports["fmt"] = true
+			fmt.Fprintf(w, `        default:
+            return fmt.Errorf("additional property not allowed: \"" + k + "\"")
+`)
+		} else {
+			fmt.Fprintf(w, `        default:
             // an additional "%s" value
-            additionalValue := %s
+            var additionalValue %s
             if err := json.Unmarshal([]byte(v), &additionalValue); err != nil {
                 return err // invalid additionalProperty
             }
             if strct.AdditionalProperties == nil {
                 strct.AdditionalProperties = make(map[string]%s, 0)
             }
-            strct.AdditionalProperties[k]= %sadditionalValue
-`, s.AdditionalType, initialiser, s.AdditionalType, addressOfInitialiser)
+            strct.AdditionalProperties[k]= additionalValue
+`, s.AdditionalType, s.AdditionalType, s.AdditionalType)
+		}
 	}
 	fmt.Fprintf(w, "        }\n") // switch
 	fmt.Fprintf(w, "    }\n")     // for
@@ -246,7 +256,7 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
 			imports["errors"] = true
 			fmt.Fprintf(w, `    // check if %s (a required property) was received
     if !%sReceived {
-        return errors.New("%s is required but was not present")
+        return errors.New("\"%s\" is required but was not present")
     }
 `, f.JSONName, f.JSONName, f.JSONName)
 		}
@@ -254,22 +264,6 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
 
 	fmt.Fprintf(w, "    return nil\n")
 	fmt.Fprintf(w, "}\n") // UnmarshalJSON
-}
-
-func getPrimitiveInitialiser(typ string) (string, bool) {
-	// strip *pointer dereference symbol so we can use in declaration
-	deref := strings.Replace(typ, "*", "", 1)
-	switch {
-	case strings.HasPrefix(typ, "map"):
-		return typ + "{}", false
-	case strings.HasPrefix(deref, "int"):
-		return "0", false
-	case strings.HasPrefix(deref, "float"):
-		return "0.0", false
-	case deref == "string":
-		return "\"\"", false
-	}
-	return deref + "{}", true
 }
 
 func outputNameAndDescriptionComment(name, description string, w io.Writer) {
