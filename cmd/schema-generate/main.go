@@ -18,6 +18,7 @@ var (
 	o = flag.String("o", "", "The output file for the schema.")
 	p = flag.String("p", "main", "The package that the structs are created in.")
 	i = flag.String("i", "", "A single file path (used for backwards compatibility).")
+	nsk = flag.Bool("nsk", false, "Allow input files with no $schema key.")
 )
 
 func main() {
@@ -47,7 +48,7 @@ func main() {
 			return
 		}
 
-		schemas[i], err = jsonschema.Parse(string(b))
+		schemas[i], err = jsonschema.Parse(string(b), *nsk)
 		if err != nil {
 			if jsonError, ok := err.(*json.SyntaxError); ok {
 				line, character, lcErr := lineAndCharacter(b, int(jsonError.Offset))
@@ -148,8 +149,14 @@ func output(w io.Writer, structs map[string]generate.Struct) {
 	for _, k := range getOrderedStructNames(structs) {
 		s := structs[k]
 
+		desc := s.Description
+
+		if desc == "" {
+			desc = "(No description)"
+		}
+
 		fmt.Fprintln(w, "")
-		fmt.Fprintf(w, "// %s %s\n", s.Name, s.Description)
+		fmt.Fprintf(w, "// %s: %s\n", s.Name, desc)
 		fmt.Fprintf(w, "type %s struct {\n", s.Name)
 
 		for _, fieldKey := range getOrderedFieldNames(s.Fields) {

@@ -53,7 +53,7 @@ func (s *Schema) Type() (firstOrDefault string, multiple bool) {
 }
 
 // Parse parses a JSON schema from a string.
-func Parse(schema string) (*Schema, error) {
+func Parse(schema string, nsk bool) (*Schema, error) {
 	s := &Schema{}
 	err := json.Unmarshal([]byte(schema), s)
 
@@ -61,8 +61,8 @@ func Parse(schema string) (*Schema, error) {
 		return s, err
 	}
 
-	if s.SchemaType == "" {
-		return s, errors.New("JSON schema must have a $schema key")
+	if !nsk && s.SchemaType == "" {
+		return s, errors.New("JSON schema must have a $schema key unless -nsk flag is set")
 	}
 
 	return s, err
