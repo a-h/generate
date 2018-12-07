@@ -29,6 +29,19 @@ func TestThatAMissingSchemaKeyResultsInAnError(t *testing.T) {
 	}
 }
 
+func TestThatAMissingSchemaKeyResultsInNoErrorIfNoKeySet(t *testing.T) {
+	invalid := `{
+        "title": "root"
+    }`
+
+	_, invaliderr := Parse(invalid, true)
+
+	if invaliderr != nil {
+		t.Error("When the argument to allow schemas without a $schema key is set, the JSON Schema should parse without a $schema key")
+	}
+
+}
+
 func TestThatTheRootSchemaCanBeParsed(t *testing.T) {
 	s := `{
         "$schema": "http://json-schema.org/schema#",
@@ -448,7 +461,7 @@ func TestThatRequiredPropertiesAreIncludedInTheSchemaModel(t *testing.T) {
         }
     }
 }`
-	so, err := Parse(s)
+	so, err := Parse(s, false)
 
 	if err != nil {
 		t.Error("failed to parse the test JSON: ", err)
@@ -481,7 +494,7 @@ func TestThatPropertiesCanHaveMultipleTypes(t *testing.T) {
             }
         }
     }`
-	so, err := Parse(s)
+	so, err := Parse(s, false)
 
 	if err != nil {
 		t.Error("It was not possible to deserialize the schema with references with error ", err)
