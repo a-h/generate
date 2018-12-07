@@ -461,7 +461,7 @@ func TestThatRequiredPropertiesAreIncludedInTheSchemaModel(t *testing.T) {
         }
     }
 }`
-	so, err := Parse(s, false)
+	so, err := Parse(s)
 
 	if err != nil {
 		t.Error("failed to parse the test JSON: ", err)
@@ -494,7 +494,7 @@ func TestThatPropertiesCanHaveMultipleTypes(t *testing.T) {
             }
         }
     }`
-	so, err := Parse(s, false)
+	so, err := Parse(s)
 
 	if err != nil {
 		t.Error("It was not possible to deserialize the schema with references with error ", err)
