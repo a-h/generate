@@ -1,0 +1,16 @@
+{
+  "$id": "http://example.com/root.json",
+  "definitions": {
+    "A": { "$id": "#foo" },
+    "B": {
+      "$id": "other.json",
+      "definitions": {
+        "X": { "$id": "#bar" },
+        "Y": { "$id": "t/inner.json" }
+      }
+    },
+    "C": {
+      "$id": "urn:uuid:ee564b8a-7a87-4125-8c96-e9f123d6766f"
+    }
+  }
+}

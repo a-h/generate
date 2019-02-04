@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "ProductSet",
+  "type": "object",
+  "properties": {
+    "the array": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    }
+  }
+}

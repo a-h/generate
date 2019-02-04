@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "additional properties",
+  "type": "object",
+  "properties": {
+    "property1": {
+      "type": "string"
+    },
+    "property2": {
+      "$ref": "#/definitions/address"
+    },
+    "property3": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "property4": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "property5": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "title": "not so anonymous",
+        "properties": {
+          "subproperty1": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "property6": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "subproperty1": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "property7": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "title": "hairy",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "subproperty1": {
+              "type": "integer"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "address": {
+      "type": "object",
+      "properties": {
+        "city": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

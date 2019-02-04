@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Simple",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "subbie": {
+      "type": "object",
+      "title": "Not So Anonymous",
+      "properties": {
+        "age": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

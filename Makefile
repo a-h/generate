@@ -1,4 +1,4 @@
-PKG := github.com/a-h/generate
+PKG := .
 CMD := $(PKG)/cmd/schema-generate
 BIN := schema-generate
 
@@ -8,7 +8,7 @@ BIN := schema-generate
 
 all: clean $(BIN)
 
-$(BIN):
+$(BIN): generator.go jsonschema.go cmd/schema-generate/main.go
 	@echo "+ Building $@"
 	CGO_ENABLED="0" go build -v -o $@ $(CMD)
 
@@ -16,14 +16,25 @@ clean:
 	@echo "+ Cleaning $(PKG)"
 	go clean -i $(PKG)/...
 	rm -f $(BIN)
+	rm -rf test/*_gen
 
 # Test
 
+# generate sources
+JSON := $(wildcard test/*.json)
+GENERATED_SOURCE := $(patsubst %.json,%_gen/generated.go,$(JSON))
+test/%_gen/generated.go: test/%.json 
+	@echo "\n+ Generating code for $@"
+	@D=$(shell echo $^ | sed 's/.json/_gen/'); \
+	[ ! -d $$D ] && mkdir -p $$D || true
+	./schema-generate -o $@ -p $(shell echo $^ | sed 's/test\///; s/.json//')  $^
+
 .PHONY: test codecheck fmt lint vet
 
-test:
-	@echo "+ Executing tests for $(PKG)"
+test: $(BIN) $(GENERATED_SOURCE)
+	@echo "\n+ Executing tests for $(PKG)"
 	go test -v -race -cover $(PKG)/...
+    
 
 codecheck: fmt lint vet
 

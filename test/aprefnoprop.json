@@ -1,0 +1,13 @@
+{
+  "definitions": {
+    "apRefNoProp": {
+      "additionalProperties": {
+        "$ref": "#/definitions/thing"
+      },
+      "type": "object"
+    },
+    "thing": {
+      "type": "object"
+    }
+  }
+}
