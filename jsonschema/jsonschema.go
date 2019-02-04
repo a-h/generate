@@ -90,8 +90,8 @@ func (s *Schema) Type() (firstOrDefault string, multiple bool) {
 	return "", multiple
 }
 
-// Parse parses a JSON schema from a string.
-func Parse(schema string) (*Schema, error) {
+// Parse parses a JSON schema from a string, with an optional boolean argument to permit schemas without a $schema key.
+func Parse(schema string, nsk ...bool) (*Schema, error) {
 	s := &Schema{}
 	err := json.Unmarshal([]byte(schema), s)
 
@@ -99,8 +99,8 @@ func Parse(schema string) (*Schema, error) {
 		return s, err
 	}
 
-	if s.SchemaType == "" {
-		return s, errors.New("JSON schema must have a $schema key")
+	if (len(nsk) == 0 || nsk[0] == false) && s.SchemaType == "" {
+		return s, errors.New("JSON schema must have a $schema key unless nsk flag is set")
 	}
 
 	return s, err
