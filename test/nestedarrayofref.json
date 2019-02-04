@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "AccountTags",
+  "comment": "goal: AccountTags [][]*Tags",
+  "type": "array",
+  "items": {
+    "$ref": "#/definitions/Accounts"
+  },
+  "definitions": {
+    "Accounts": {
+      "title": "Accounts",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Tags"
+      }
+    },
+    "Tags": {
+      "title": "Tags",
+      "type": "object",
+      "properties": {
+        "tag": {
+          "type": "string"
+        },
+        "things": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Thing"
+          }
+        },
+        "mainThing": {
+          "$ref": "#/definitions/Thing"
+        }
+      }
+    },
+    "Thing": {
+      "type": "object",
+      "properties": {
+        "foo": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "age": {
+              "type": "integer"
+            }
+          }
+        },
+        "bar": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "baz": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "qux": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

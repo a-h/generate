@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "additional properties",
+  "type": "object",
+  "properties": {
+    "property1": {
+      "type": "string"
+    },
+    "property2": {
+      "$ref": "#/definitions/address"
+    },
+    "property3": {
+      "type": "object",
+      "properties": {
+        "age": { "type": "integer"}
+      },
+      "additionalProperties": {
+        "type": "integer"
+      }
+    },
+    "property4": {
+      "type": "object",
+      "properties": {
+        "age": { "type": "integer"}
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "property5": {
+      "type": "object",
+      "properties": {
+        "age": { "type": "integer"}
+      },
+      "additionalProperties": {
+        "type": "object",
+        "title": "not so anonymous",
+        "properties": {
+          "subproperty1": {
+            "type": "integer"
+          }
+
+        }
+      }
+    },
+    "property6": {
+      "type": "object",
+      "properties": {
+        "age": { "type": "integer" },
+        "pronoun": { "type": "string" }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "subproperty1": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "property7": {
+      "type": "object",
+      "properties": {
+        "street_number": { "type": "integer"},
+        "street_name": { "type": "string"},
+        "po_box": {
+          "type": "object",
+          "properties": {
+            "suburb": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "title": "hairy",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "color": {
+              "type": "string"
+            },
+            "density": {
+              "type": "number"
+            },
+            "conditions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "address": {
+      "type": "object",
+      "properties": {
+        "city": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

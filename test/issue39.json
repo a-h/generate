@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "House",
+  "type": "object",
+  "definitions": {
+    "address": {
+      "type": "object",
+      "properties": {
+        "number": { "type": "integer" },
+        "postcode": { "type": "string" }
+      }
+    },
+    "owners": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "title": "person",
+        "properties": {
+          "name": { "type": "string" }
+        }
+      }
+    }
+  },
+  "properties": {
+    "address": { "$ref": "#/definitions/address" },
+    "owners": { "$ref": "#/definitions/owners" }
+  }
+}

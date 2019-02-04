@@ -1,6 +1,6 @@
 # generate
 
-Generates Go (golang) Structs from JSON schema.
+Generates Go (golang) Structs and Validation code from JSON schema.
 
 # Requirements
 

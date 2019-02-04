@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "$id": "physical_server.json",
+    "$id": "file://physical_server.json",
     "description": "Physical Server asset",
     "type": "object",
     "properties": {
