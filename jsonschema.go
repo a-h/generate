@@ -51,7 +51,9 @@ type Schema struct {
 	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.2
 	Default interface{}
 
-	Examples []string
+	// Examples ...
+	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.4
+	Examples []interface{}
 
 	// Reference is a URI reference to a schema.
 	// http://json-schema.org/draft-07/json-schema-core.html#rfc.section.8
