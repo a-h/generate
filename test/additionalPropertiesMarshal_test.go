@@ -1,10 +1,10 @@
 package test
 
 import (
-	"testing"
-	gen "github.com/a-h/generate/test/additionalPropertiesMarshal_gen"
 	"encoding/json"
+	gen "github.com/giorgos-nikolopoulos/generate/test/additionalPropertiesMarshal_gen"
 	"reflect"
+	"testing"
 )
 
 func TestApRefNoProp(t *testing.T) {
@@ -19,7 +19,7 @@ func TestApRefReqProp(t *testing.T) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func TestApTrueNoProp(t *testing.T) {
-	
+
 	noPropData := `{"a": "b", "c": 42 }`
 
 	ap := gen.ApTrueNoProp{}
@@ -50,7 +50,6 @@ func TestApTrueNoProp(t *testing.T) {
 		}
 	}
 }
-
 
 func TestApTrueProp(t *testing.T) {
 	data := `{"a": "b", "c": 42, "stuff": "xyz" }`
@@ -175,7 +174,6 @@ func TestApFalseNoProp(t *testing.T) {
 	}
 }
 
-
 func TestApFalseProp(t *testing.T) {
 	dataBad1 := `{"a": "b", "c": 42, "stuff": "xyz"}`
 	dataBad2 := `{"a": "b", "c": 42}`
@@ -239,7 +237,7 @@ func TestApFalseReqProp(t *testing.T) {
 			t.Fatalf("should have returned an error, required field missing")
 		}
 	}
-	
+
 	{
 		ap := gen.ApFalseReqProp{}
 		err := json.Unmarshal([]byte(dataBad2), &ap)

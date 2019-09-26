@@ -1,8 +1,8 @@
 package test
 
 import (
+	"github.com/giorgos-nikolopoulos/generate/test/abandoned_gen"
 	"testing"
-	"github.com/a-h/generate/test/abandoned_gen"
 )
 
 func TestAbandoned(t *testing.T) {
