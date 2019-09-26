@@ -174,6 +174,10 @@ func (g *Generator) processArray(name string, schema *Schema) (typeStr string, e
 // schema: detail incl properties & child objects
 // returns: generated type
 func (g *Generator) processObject(name string, schema *Schema) (typ string, err error) {
+	if len(schema.Properties) == 0 {
+		// Prefer interface{} over empty struct
+		return "interface{}", nil
+	}
 	strct := Struct{
 		ID:          schema.ID(),
 		Name:        name,

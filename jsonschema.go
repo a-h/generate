@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/url"
+	"strings"
 )
 
 // AdditionalProperties handles additional properties present in the JSON schema.
@@ -120,6 +121,14 @@ func (schema *Schema) ID() string {
 	return schema.ID06
 }
 
+func (schema *Schema) setID(id string) {
+	if schema.ID06 == "" && schema.ID04 != "" {
+		schema.ID04 = id
+	} else {
+		schema.ID06 = id
+	}
+}
+
 // Type returns the type which is permitted or an empty string if the type field is missing.
 // The 'type' field in JSON schema also allows for a single string value or an array of strings.
 // Examples:
@@ -179,12 +188,12 @@ func (schema *Schema) GetRoot() *Schema {
 }
 
 // Parse parses a JSON schema from a string.
-func Parse(schema string, uri *url.URL) (*Schema, error) {
-	return ParseWithSchemaKeyRequired(schema, uri, true)
+func Parse(schema string, uri *url.URL, idPrefix string) (*Schema, error) {
+	return ParseWithSchemaKeyRequired(schema, uri, true, idPrefix)
 }
 
 // ParseWithSchemaKeyRequired parses a JSON schema from a string with a flag to set whether the schema key is required.
-func ParseWithSchemaKeyRequired(schema string, uri *url.URL, schemaKeyRequired bool) (*Schema, error) {
+func ParseWithSchemaKeyRequired(schema string, uri *url.URL, schemaKeyRequired bool, idPrefix string) (*Schema, error) {
 	s := &Schema{}
 	err := json.Unmarshal([]byte(schema), s)
 
@@ -206,7 +215,11 @@ func ParseWithSchemaKeyRequired(schema string, uri *url.URL, schemaKeyRequired b
 		return nil, errors.New("error parsing $id of document \"" + uri.String() + "\": " + err.Error())
 	}
 	if !abs.IsAbs() {
-		return nil, errors.New("$id of document not absolute URI: \"" + uri.String() + "\": \"" + s.ID() + "\"")
+		if idPrefix != "" {
+			s.setID(strings.Join([]string{idPrefix, s.ID()}, "/"))
+		} else {
+			return nil, errors.New("$id of document not absolute URI: \"" + uri.String() + "\": \"" + s.ID() + "\"")
+		}
 	}
 
 	s.Init()

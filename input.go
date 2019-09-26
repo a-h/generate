@@ -11,7 +11,7 @@ import (
 )
 
 // ReadInputFiles from disk and convert to JSON schema.
-func ReadInputFiles(inputFiles []string, schemaKeyRequired bool) ([]*Schema, error) {
+func ReadInputFiles(inputFiles []string, schemaKeyRequired bool, idPrefix string) ([]*Schema, error) {
 	schemas := make([]*Schema, len(inputFiles))
 	for i, file := range inputFiles {
 		b, err := ioutil.ReadFile(file)
@@ -29,7 +29,7 @@ func ReadInputFiles(inputFiles []string, schemaKeyRequired bool) ([]*Schema, err
 			Path:   abPath,
 		}
 
-		schemas[i], err = ParseWithSchemaKeyRequired(string(b), &fileURI, schemaKeyRequired)
+		schemas[i], err = ParseWithSchemaKeyRequired(string(b), &fileURI, schemaKeyRequired, idPrefix)
 		if err != nil {
 			if jsonError, ok := err.(*json.SyntaxError); ok {
 				line, character, lcErr := lineAndCharacter(b, int(jsonError.Offset))

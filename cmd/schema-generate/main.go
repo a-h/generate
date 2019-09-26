@@ -15,6 +15,7 @@ var (
 	o                     = flag.String("o", "", "The output file for the schema.")
 	p                     = flag.String("p", "main", "The package that the structs are created in.")
 	i                     = flag.String("i", "", "A single file path (used for backwards compatibility).")
+	idPrefix              = flag.String("idPrefix", "", "Prefix the id in case it is not absolute.")
 	schemaKeyRequiredFlag = flag.Bool("schemaKeyRequired", false, "Allow input files with no $schema key.")
 )
 
@@ -38,7 +39,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	schemas, err := generate.ReadInputFiles(inputFiles, *schemaKeyRequiredFlag)
+	schemas, err := generate.ReadInputFiles(inputFiles, *schemaKeyRequiredFlag, *idPrefix)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
