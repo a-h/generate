@@ -336,7 +336,11 @@ func getGolangName(s string) string {
 			// Go types are not allowed to start with a number, lets prefix with an underscore.
 			buf.WriteRune('_')
 		}
-		buf.WriteString(capitaliseFirstLetter(v))
+		if i == 0 {
+			buf.WriteString(capitaliseFirstLetter(v))
+		} else {
+			buf.WriteString(v)
+		}
 	}
 	return buf.String()
 }
