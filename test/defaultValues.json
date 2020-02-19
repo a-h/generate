@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://thing",
+
+  "type": "object",
+
+  "properties": {
+    "name": {
+      "type": "string",
+      "default": "Unnamed"
+    },
+    "age": {
+      "type": "integer",
+      "default": -1
+    },
+    "score": {
+      "type": "number",
+      "default": -1.0
+    }
+  }
+}

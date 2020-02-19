@@ -197,8 +197,9 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 			Type:        fieldType,
 			Required:    contains(schema.Required, propKey),
 			Description: prop.Description,
+			Default:     prop.Default,
 		}
-		if f.Required {
+		if f.Required || f.Default != nil {
 			strct.GenerateCode = true
 		}
 		strct.Fields[f.Name] = f
@@ -396,4 +397,5 @@ type Field struct {
 	// Required is set to true when the field is required.
 	Required    bool
 	Description string
+	Default     interface{}
 }
