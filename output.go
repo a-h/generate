@@ -188,7 +188,7 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
 	for _, fieldKey := range getOrderedFieldNames(s.Fields) {
 		f := s.Fields[fieldKey]
 		if f.Required {
-			fmt.Fprintf(w, "    %sReceived := false\n", f.JSONName)
+			fmt.Fprintf(w, "    %sReceived := false\n", f.Name)
 		}
 	}
 	// setup initial unmarshal
@@ -220,7 +220,7 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
              }
 `, f.JSONName, f.Name)
 		if f.Required {
-			fmt.Fprintf(w, "            %sReceived = true\n", f.JSONName)
+			fmt.Fprintf(w, "            %sReceived = true\n", f.Name)
 		}
 	}
 
@@ -258,7 +258,7 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
     if !%sReceived {
         return errors.New("\"%s\" is required but was not present")
     }
-`, f.JSONName, f.JSONName, f.JSONName)
+`, f.JSONName, f.Name, f.JSONName)
 		}
 	}
 
