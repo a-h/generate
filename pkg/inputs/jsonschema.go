@@ -1,4 +1,4 @@
-package generate
+package inputs
 
 import (
 	"encoding/json"

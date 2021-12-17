@@ -1,0 +1,51 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Example",
+    "id": "http://example.com/exampleschema.json",
+    "type": "object",
+    "description": "An example JSON Schema",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "address": {
+        "$ref": "#/definitions/address"
+      },
+      "status": {
+        "$ref": "#/definitions/status"
+      }
+    },
+    "definitions": {
+      "address": {
+        "id": "address",
+        "type": "object",
+        "description": "Address",
+        "properties": {
+          "street": {
+            "type": "string",
+            "description": "Address 1",
+            "maxLength": 40
+          },
+          "houseNumber": {
+            "type": "integer",
+            "description": "House Number"
+          }
+        }
+      },
+      "status": {
+        "type": "object",
+        "properties": {
+          "favouritecat": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "type": "string",
+            "description": "The favourite cat.",
+            "maxLength": 1
+          }
+        }
+      }
+    }
+  }

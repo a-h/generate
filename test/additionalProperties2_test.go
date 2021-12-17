@@ -6,8 +6,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/a-h/generate/test/additionalProperties2_gen"
+	additionalProperties2 "github.com/azarc-io/json-schema-to-go-struct-generator/test/generated/additionalProperties2/additionalProperties"
 )
+
+//go:generate go run ../cmd/main.go --input ./samples/additionalProperties2 --output ./generated/additionalProperties2
 
 func TestMarshalUnmarshal(t *testing.T) {
 	params := []struct {

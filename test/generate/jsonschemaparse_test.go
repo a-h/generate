@@ -1,6 +1,7 @@
 package generate
 
 import (
+	js_inputs "github.com/azarc-io/json-schema-to-go-struct-generator/pkg/inputs"
 	"net/url"
 	"testing"
 )
@@ -9,12 +10,12 @@ func TestThatAMissingSchemaKeyResultsInAnError(t *testing.T) {
 	invalid := `{
         "title": "root"
     }`
-	_, invaliderr := Parse(invalid, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
+	_, invaliderr := js_inputs.Parse(invalid, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 	valid := `{
         "$schema": "http://json-schema.org/schema#",
         "title": "root"
     }`
-	_, validerr := Parse(valid, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
+	_, validerr := js_inputs.Parse(valid, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 	if invaliderr == nil {
 		// it SHOULD be used in the root schema
 		// t.Error("When the $schema key is missing from the root, the JSON Schema is not valid")
@@ -29,7 +30,7 @@ func TestThatTheRootSchemaCanBeParsed(t *testing.T) {
         "$schema": "http://json-schema.org/schema#",
         "title": "root"
     }`
-	so, err := Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
+	so, err := js_inputs.Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 
 	if err != nil {
 		t.Fatal("It should be possible to unmarshal a simple schema, but received error:", err)
@@ -56,7 +57,7 @@ func TestThatPropertiesCanBeParsed(t *testing.T) {
             }
         }
     }`
-	so, err := Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
+	so, err := js_inputs.Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 
 	if err != nil {
 		t.Fatal("It was not possible to unmarshal the schema:", err)
@@ -91,7 +92,7 @@ func TestThatPropertiesCanHaveMultipleTypes(t *testing.T) {
             }
         }
     }`
-	so, err := Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
+	so, err := js_inputs.Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 
 	if err != nil {
 		t.Fatal("It was not possible to unmarshal the schema:", err)
@@ -109,7 +110,7 @@ func TestThatPropertiesCanHaveMultipleTypes(t *testing.T) {
 
 func TestThatParsingInvalidValuesReturnsAnError(t *testing.T) {
 	s := `{ " }`
-	_, err := Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
+	_, err := js_inputs.Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 
 	if err == nil {
 		t.Fatal("Expected a parsing error, but got nil")
@@ -127,7 +128,7 @@ func TestThatDefaultsCanBeParsed(t *testing.T) {
             }
         }
     }`
-	so, err := Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
+	so, err := js_inputs.Parse(s, &url.URL{Scheme: "file", Path: "jsonschemaparse_test.go"})
 
 	if err != nil {
 		t.Fatal("It was not possible to unmarshal the schema:", err)
@@ -141,19 +142,19 @@ func TestThatDefaultsCanBeParsed(t *testing.T) {
 
 func TestReturnedSchemaId(t *testing.T) {
 	tests := []struct {
-		input    *Schema
+		input    *js_inputs.Schema
 		expected string
 	}{
 		{
-			input:    &Schema{},
+			input:    &js_inputs.Schema{},
 			expected: "",
 		},
 		{
-			input:    &Schema{ID06: "http://example.com/foo.json", ID04: "#foo"},
+			input:    &js_inputs.Schema{ID06: "http://example.com/foo.json", ID04: "#foo"},
 			expected: "http://example.com/foo.json",
 		},
 		{
-			input:    &Schema{ID04: "#foo"},
+			input:    &js_inputs.Schema{ID04: "#foo"},
 			expected: "#foo",
 		},
 	}

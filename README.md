@@ -1,32 +1,25 @@
 # generate
 
-Generates Go (golang) Structs and Validation code from JSON schema.
+A library to generate go models from given json files
+
+![A test image](https://miro.medium.com/max/256/0*3CCVZH7RBPWlBVFA.png)
+
 
 # Requirements
 
-* Go 1.8+
+* Go 1.17+
 
 # Usage
 
 Install
 
 ```console
-$ go get -u github.com/a-h/generate/...
+$ go get -u github.com/azarc-io/json-schema-to-go-struct-generator
 ```
 
 or
 
-Build
 
-```console
-$ make
-```
-
-Run
-
-```console
-$ schema-generate exampleschema.json
-```
 
 # Example
 
@@ -108,3 +101,13 @@ type Status struct {
 ```
 
 See the [test/](./test/) directory for more examples.
+
+# Running Tests
+
+In order to run the tests, you must first generate the sample outputs which will produce
+the code required to compile and run the tests.
+
+```shell
+go generate github.com/azarc-io/json-schema-to-go-struct-generator/test
+go test ./test/...
+```

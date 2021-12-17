@@ -1,4 +1,4 @@
-package generate
+package inputs
 
 import (
 	"bytes"
@@ -61,7 +61,7 @@ func (g *Generator) CreateTypes() (err error) {
 // process a block of definitions
 func (g *Generator) processDefinitions(schema *Schema) error {
 	for key, subSchema := range schema.Definitions {
-		if _, err := g.processSchema(getGolangName(key), subSchema); err != nil {
+		if _, err := g.processSchema(GetGolangName(key), subSchema); err != nil {
 			return err
 		}
 	}
@@ -144,7 +144,7 @@ func (g *Generator) processSchema(schemaName string, schema *Schema) (typ string
 // schema: items element
 func (g *Generator) processArray(name string, schema *Schema) (typeStr string, err error) {
 	if schema.Items != nil {
-		// subType: fallback name in case this array contains inline object without a title
+		// subType: fallback name in case this array Contains inline object without a title
 		subName := g.getSchemaName(name+"Items", schema.Items)
 		subTyp, err := g.processSchema(subName, schema.Items)
 		if err != nil {
@@ -160,7 +160,7 @@ func (g *Generator) processArray(name string, schema *Schema) (typeStr string, e
 				Name:        name,
 				JSONName:    "",
 				Type:        finalType,
-				Required:    contains(schema.Required, name),
+				Required:    Contains(schema.Required, name),
 				Description: schema.Description,
 			}
 			g.Aliases[array.Name] = array
@@ -184,7 +184,7 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 	schema.GeneratedType = "*" + name
 	// regular properties
 	for propKey, prop := range schema.Properties {
-		fieldName := getGolangName(propKey)
+		fieldName := GetGolangName(propKey)
 		// calculate sub-schema name here, may not actually be used depending on type of schema!
 		subSchemaName := g.getSchemaName(fieldName, prop)
 		fieldType, err := g.processSchema(subSchemaName, prop)
@@ -195,7 +195,7 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 			Name:        fieldName,
 			JSONName:    propKey,
 			Type:        fieldType,
-			Required:    contains(schema.Required, propKey),
+			Required:    Contains(schema.Required, propKey),
 			Description: prop.Description,
 		}
 		if f.Required {
@@ -212,10 +212,10 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 			return "", err
 		}
 		mapTyp := "map[string]" + subTyp
-		// If this object is inline property for another object, and only contains additional properties, we can
+		// If this object is inline property for another object, and only Contains additional properties, we can
 		// collapse the structure down to a map.
 		//
-		// If this object is a definition and only contains additional properties, we can't do that or we end up with
+		// If this object is a definition and only Contains additional properties, we can't do that or we end up with
 		// no struct
 		isDefinitionObject := strings.HasPrefix(schema.PathElement, "definitions")
 		if len(schema.Properties) == 0 && !isDefinitionObject {
@@ -263,7 +263,7 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 	return getPrimitiveTypeName("object", name, true)
 }
 
-func contains(s []string, e string) bool {
+func Contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
 			return true
@@ -306,33 +306,33 @@ func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name
 // return a name for this (sub-)schema.
 func (g *Generator) getSchemaName(keyName string, schema *Schema) string {
 	if len(schema.Title) > 0 {
-		return getGolangName(schema.Title)
+		return GetGolangName(schema.Title)
 	}
 	if keyName != "" {
-		return getGolangName(keyName)
+		return GetGolangName(keyName)
 	}
 	if schema.Parent == nil {
 		return "Root"
 	}
 	if schema.JSONKey != "" {
-		return getGolangName(schema.JSONKey)
+		return GetGolangName(schema.JSONKey)
 	}
 	if schema.Parent != nil && schema.Parent.JSONKey != "" {
-		return getGolangName(schema.Parent.JSONKey + "Item")
+		return GetGolangName(schema.Parent.JSONKey + "Item")
 	}
 	g.anonCount++
 	return fmt.Sprintf("Anonymous%d", g.anonCount)
 }
 
-// getGolangName strips invalid characters out of golang struct or field names.
-func getGolangName(s string) string {
+// GetGolangName strips invalid characters out of golang struct or field names.
+func GetGolangName(s string) string {
 	buf := bytes.NewBuffer([]byte{})
-	for i, v := range splitOnAll(s, isNotAGoNameCharacter) {
+	for i, v := range splitOnAll(s, IsNotAGoNameCharacter) {
 		if i == 0 && strings.IndexAny(v, "0123456789") == 0 {
 			// Go types are not allowed to start with a number, lets prefix with an underscore.
 			buf.WriteRune('_')
 		}
-		buf.WriteString(capitaliseFirstLetter(v))
+		buf.WriteString(CapitaliseFirstLetter(v))
 	}
 	return buf.String()
 }
@@ -354,14 +354,14 @@ func splitOnAll(s string, shouldSplit func(r rune) bool) []string {
 	return rv
 }
 
-func isNotAGoNameCharacter(r rune) bool {
+func IsNotAGoNameCharacter(r rune) bool {
 	if unicode.IsLetter(r) || unicode.IsDigit(r) {
 		return false
 	}
 	return true
 }
 
-func capitaliseFirstLetter(s string) string {
+func CapitaliseFirstLetter(s string) string {
 	if s == "" {
 		return s
 	}

@@ -3,8 +3,11 @@ package test
 import (
 	"encoding/json"
 	"testing"
-	"github.com/a-h/generate/test/example1_gen"
+
+	example1 "github.com/azarc-io/json-schema-to-go-struct-generator/test/generated/example1/example1a"
 )
+
+//go:generate go run ../cmd/main.go --input ./samples/example1 --output ./generated/example1
 
 func TestExample1(t *testing.T) {
 	params := []struct {

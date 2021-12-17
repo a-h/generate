@@ -2,6 +2,8 @@ package generate
 
 import (
 	"encoding/json"
+	js_inputs "github.com/azarc-io/json-schema-to-go-struct-generator/pkg/inputs"
+	_ "github.com/azarc-io/json-schema-to-go-struct-generator/pkg/utils"
 	"reflect"
 	"strings"
 	"testing"
@@ -35,7 +37,7 @@ func TestThatCapitalisationOccursCorrectly(t *testing.T) {
 	}
 
 	for idx, test := range tests {
-		actual := capitaliseFirstLetter(test.input)
+		actual := js_inputs.CapitaliseFirstLetter(test.input)
 		if actual != test.expected {
 			t.Errorf("Test %d failed: For input \"%s\", expected \"%s\", got \"%s\"", idx, test.input, test.expected, actual)
 		}
@@ -43,36 +45,36 @@ func TestThatCapitalisationOccursCorrectly(t *testing.T) {
 }
 
 func TestFieldGeneration(t *testing.T) {
-	properties := map[string]*Schema{
+	properties := map[string]*js_inputs.Schema{
 		"property1": {TypeValue: "string"},
 		"property2": {Reference: "#/definitions/address"},
 		// test sub-objects with properties or additionalProperties
-		"property3": {TypeValue: "object", Title: "SubObj1", Properties: map[string]*Schema{"name": {TypeValue: "string"}}},
-		"property4": {TypeValue: "object", Title: "SubObj2", AdditionalProperties: &AdditionalProperties{TypeValue: "integer"}},
+		"property3": {TypeValue: "object", Title: "SubObj1", Properties: map[string]*js_inputs.Schema{"name": {TypeValue: "string"}}},
+		"property4": {TypeValue: "object", Title: "SubObj2", AdditionalProperties: &js_inputs.AdditionalProperties{TypeValue: "integer"}},
 		// test sub-objects with properties composed of objects
-		"property5": {TypeValue: "object", Title: "SubObj3", Properties: map[string]*Schema{"SubObj3a": {TypeValue: "object", Properties: map[string]*Schema{"subproperty1": {TypeValue: "integer"}}}}},
+		"property5": {TypeValue: "object", Title: "SubObj3", Properties: map[string]*js_inputs.Schema{"SubObj3a": {TypeValue: "object", Properties: map[string]*js_inputs.Schema{"subproperty1": {TypeValue: "integer"}}}}},
 		// test sub-objects with additionalProperties composed of objects
-		"property6": {TypeValue: "object", Title: "SubObj4", AdditionalProperties: &AdditionalProperties{TypeValue: "object", Title: "SubObj4a", Properties: map[string]*Schema{"subproperty1": {TypeValue: "integer"}}}},
+		"property6": {TypeValue: "object", Title: "SubObj4", AdditionalProperties: &js_inputs.AdditionalProperties{TypeValue: "object", Title: "SubObj4a", Properties: map[string]*js_inputs.Schema{"subproperty1": {TypeValue: "integer"}}}},
 		// test sub-objects without titles
 		"property7": {TypeValue: "object"},
 		// test sub-objects with properties AND additionalProperties
-		"property8": {TypeValue: "object", Title: "SubObj5", Properties: map[string]*Schema{"name": {TypeValue: "string"}}, AdditionalProperties: &AdditionalProperties{TypeValue: "integer"}},
+		"property8": {TypeValue: "object", Title: "SubObj5", Properties: map[string]*js_inputs.Schema{"name": {TypeValue: "string"}}, AdditionalProperties: &js_inputs.AdditionalProperties{TypeValue: "integer"}},
 	}
 
 	requiredFields := []string{"property2"}
 
-	root := Schema{
+	root := js_inputs.Schema{
 		SchemaType: "http://localhost",
 		Title:      "TestFieldGeneration",
 		TypeValue:  "object",
 		Properties: properties,
-		Definitions: map[string]*Schema{
+		Definitions: map[string]*js_inputs.Schema{
 			"address": {TypeValue: "object"},
 		},
 		Required: requiredFields,
 	}
 	root.Init()
-	g := New(&root)
+	g := js_inputs.New(&root)
 	err := g.CreateTypes()
 
 	// Output(os.Stderr, g, "test")
@@ -111,24 +113,24 @@ func TestFieldGeneration(t *testing.T) {
 }
 
 func TestFieldGenerationWithArrayReferences(t *testing.T) {
-	properties := map[string]*Schema{
+	properties := map[string]*js_inputs.Schema{
 		"property1": {TypeValue: "string"},
 		"property2": {
 			TypeValue: "array",
-			Items: &Schema{
+			Items: &js_inputs.Schema{
 				Reference: "#/definitions/address",
 			},
 		},
 		"property3": {
 			TypeValue: "array",
-			Items: &Schema{
+			Items: &js_inputs.Schema{
 				TypeValue:            "object",
-				AdditionalProperties: (*AdditionalProperties)(&Schema{TypeValue: "integer"}),
+				AdditionalProperties: (*js_inputs.AdditionalProperties)(&js_inputs.Schema{TypeValue: "integer"}),
 			},
 		},
 		"property4": {
 			TypeValue: "array",
-			Items: &Schema{
+			Items: &js_inputs.Schema{
 				Reference: "#/definitions/outer",
 			},
 		},
@@ -136,21 +138,21 @@ func TestFieldGenerationWithArrayReferences(t *testing.T) {
 
 	requiredFields := []string{"property2"}
 
-	root := Schema{
+	root := js_inputs.Schema{
 		SchemaType: "http://localhost",
 		Title:      "TestFieldGenerationWithArrayReferences",
 		TypeValue:  "object",
 		Properties: properties,
-		Definitions: map[string]*Schema{
+		Definitions: map[string]*js_inputs.Schema{
 			"address": {TypeValue: "object"},
-			"outer":   {TypeValue: "array", Items: &Schema{Reference: "#/definitions/inner"}},
+			"outer":   {TypeValue: "array", Items: &js_inputs.Schema{Reference: "#/definitions/inner"}},
 			"inner":   {TypeValue: "object"},
 		},
 		Required: requiredFields,
 	}
 	root.Init()
 
-	g := New(&root)
+	g := js_inputs.New(&root)
 	err := g.CreateTypes()
 
 	//Output(os.Stderr, g, "test")
@@ -169,7 +171,7 @@ func TestFieldGenerationWithArrayReferences(t *testing.T) {
 	testField(g.Structs["TestFieldGenerationWithArrayReferences"].Fields["Property4"], "property4", "Property4", "[][]*Inner", false, t)
 }
 
-func testField(actual Field, expectedJSONName string, expectedName string, expectedType string, expectedToBeRequired bool, t *testing.T) {
+func testField(actual js_inputs.Field, expectedJSONName string, expectedName string, expectedType string, expectedToBeRequired bool, t *testing.T) {
 	if actual.JSONName != expectedJSONName {
 		t.Errorf("JSONName - expected \"%s\", got \"%s\"", expectedJSONName, actual.JSONName)
 	}
@@ -185,12 +187,12 @@ func testField(actual Field, expectedJSONName string, expectedName string, expec
 }
 
 func TestNestedStructGeneration(t *testing.T) {
-	root := &Schema{}
+	root := &js_inputs.Schema{}
 	root.Title = "Example"
-	root.Properties = map[string]*Schema{
+	root.Properties = map[string]*js_inputs.Schema{
 		"property1": {
 			TypeValue: "object",
-			Properties: map[string]*Schema{
+			Properties: map[string]*js_inputs.Schema{
 				"subproperty1": {TypeValue: "string"},
 			},
 		},
@@ -198,7 +200,7 @@ func TestNestedStructGeneration(t *testing.T) {
 
 	root.Init()
 
-	g := New(root)
+	g := js_inputs.New(root)
 	err := g.CreateTypes()
 	results := g.Structs
 
@@ -226,12 +228,12 @@ func TestNestedStructGeneration(t *testing.T) {
 }
 
 func TestEmptyNestedStructGeneration(t *testing.T) {
-	root := &Schema{}
+	root := &js_inputs.Schema{}
 	root.Title = "Example"
-	root.Properties = map[string]*Schema{
+	root.Properties = map[string]*js_inputs.Schema{
 		"property1": {
 			TypeValue: "object",
-			Properties: map[string]*Schema{
+			Properties: map[string]*js_inputs.Schema{
 				"nestedproperty1": {TypeValue: "string"},
 			},
 		},
@@ -239,7 +241,7 @@ func TestEmptyNestedStructGeneration(t *testing.T) {
 
 	root.Init()
 
-	g := New(root)
+	g := js_inputs.New(root)
 	err := g.CreateTypes()
 	results := g.Structs
 
@@ -267,25 +269,25 @@ func TestEmptyNestedStructGeneration(t *testing.T) {
 }
 
 func TestStructNameExtractor(t *testing.T) {
-	m := make(map[string]Struct)
-	m["name1"] = Struct{}
-	m["name2"] = Struct{}
+	m := make(map[string]js_inputs.Struct)
+	m["name1"] = js_inputs.Struct{}
+	m["name2"] = js_inputs.Struct{}
 
 	names := getStructNamesFromMap(m)
 	if len(names) != 2 {
 		t.Error("Didn't extract all names from the map.")
 	}
 
-	if !contains(names, "name1") {
+	if !js_inputs.Contains(names, "name1") {
 		t.Error("name1 was not extracted")
 	}
 
-	if !contains(names, "name2") {
+	if !js_inputs.Contains(names, "name2") {
 		t.Error("name2 was not extracted")
 	}
 }
 
-func getStructNamesFromMap(m map[string]Struct) []string {
+func getStructNamesFromMap(m map[string]js_inputs.Struct) []string {
 	sn := make([]string, len(m))
 	i := 0
 	for k := range m {
@@ -296,23 +298,23 @@ func getStructNamesFromMap(m map[string]Struct) []string {
 }
 
 func TestStructGeneration(t *testing.T) {
-	root := &Schema{}
+	root := &js_inputs.Schema{}
 	root.Title = "RootElement"
-	root.Definitions = make(map[string]*Schema)
-	root.Definitions["address"] = &Schema{
-		Properties: map[string]*Schema{
+	root.Definitions = make(map[string]*js_inputs.Schema)
+	root.Definitions["address"] = &js_inputs.Schema{
+		Properties: map[string]*js_inputs.Schema{
 			"address1": {TypeValue: "string"},
 			"zip":      {TypeValue: "number"},
 		},
 	}
-	root.Properties = map[string]*Schema{
+	root.Properties = map[string]*js_inputs.Schema{
 		"property1": {TypeValue: "string"},
 		"property2": {Reference: "#/definitions/address"},
 	}
 
 	root.Init()
 
-	g := New(root)
+	g := js_inputs.New(root)
 	err := g.CreateTypes()
 	results := g.Structs
 
@@ -328,13 +330,13 @@ func TestStructGeneration(t *testing.T) {
 }
 
 func TestArrayGeneration(t *testing.T) {
-	root := &Schema{
+	root := &js_inputs.Schema{
 		Title:     "Array of Artists Example",
 		TypeValue: "array",
-		Items: &Schema{
+		Items: &js_inputs.Schema{
 			Title:     "Artist",
 			TypeValue: "object",
-			Properties: map[string]*Schema{
+			Properties: map[string]*js_inputs.Schema{
 				"name":      {TypeValue: "string"},
 				"birthyear": {TypeValue: "number"},
 			},
@@ -343,7 +345,7 @@ func TestArrayGeneration(t *testing.T) {
 
 	root.Init()
 
-	g := New(root)
+	g := js_inputs.New(root)
 	err := g.CreateTypes()
 	results := g.Structs
 
@@ -376,17 +378,17 @@ func TestArrayGeneration(t *testing.T) {
 }
 
 func TestNestedArrayGeneration(t *testing.T) {
-	root := &Schema{
+	root := &js_inputs.Schema{
 		Title:     "Favourite Bars",
 		TypeValue: "object",
-		Properties: map[string]*Schema{
+		Properties: map[string]*js_inputs.Schema{
 			"barName": {TypeValue: "string"},
 			"cities": {
 				TypeValue: "array",
-				Items: &Schema{
+				Items: &js_inputs.Schema{
 					Title:     "City",
 					TypeValue: "object",
-					Properties: map[string]*Schema{
+					Properties: map[string]*js_inputs.Schema{
 						"name":    {TypeValue: "string"},
 						"country": {TypeValue: "string"},
 					},
@@ -394,14 +396,14 @@ func TestNestedArrayGeneration(t *testing.T) {
 			},
 			"tags": {
 				TypeValue: "array",
-				Items:     &Schema{TypeValue: "string"},
+				Items:     &js_inputs.Schema{TypeValue: "string"},
 			},
 		},
 	}
 
 	root.Init()
 
-	g := New(root)
+	g := js_inputs.New(root)
 	err := g.CreateTypes()
 	results := g.Structs
 
@@ -456,23 +458,23 @@ func TestNestedArrayGeneration(t *testing.T) {
 }
 
 func TestMultipleSchemaStructGeneration(t *testing.T) {
-	root1 := &Schema{
+	root1 := &js_inputs.Schema{
 		Title: "Root1Element",
-		ID06:  "http://example.com/schema/root1",
-		Properties: map[string]*Schema{
+		ID06:  "http://example.com/js_inputs.Schema/root1",
+		Properties: map[string]*js_inputs.Schema{
 			"property1": {Reference: "root2#/definitions/address"},
 		},
 	}
 
-	root2 := &Schema{
+	root2 := &js_inputs.Schema{
 		Title: "Root2Element",
-		ID06:  "http://example.com/schema/root2",
-		Properties: map[string]*Schema{
+		ID06:  "http://example.com/js_inputs.Schema/root2",
+		Properties: map[string]*js_inputs.Schema{
 			"property1": {Reference: "#/definitions/address"},
 		},
-		Definitions: map[string]*Schema{
+		Definitions: map[string]*js_inputs.Schema{
 			"address": {
-				Properties: map[string]*Schema{
+				Properties: map[string]*js_inputs.Schema{
 					"address1": {TypeValue: "string"},
 					"zip":      {TypeValue: "number"},
 				},
@@ -483,7 +485,7 @@ func TestMultipleSchemaStructGeneration(t *testing.T) {
 	root1.Init()
 	root2.Init()
 
-	g := New(root1, root2)
+	g := js_inputs.New(root1, root2)
 	err := g.CreateTypes()
 	results := g.Structs
 
@@ -547,7 +549,7 @@ func TestThatJavascriptKeyNamesCanBeConvertedToValidGoNames(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actual := getGolangName(test.input)
+		actual := js_inputs.GetGolangName(test.input)
 
 		if test.expected != actual {
 			t.Errorf("For test '%s', for input '%s' expected '%s' but got '%s'.", test.description, test.input, test.expected, actual)
@@ -556,9 +558,9 @@ func TestThatJavascriptKeyNamesCanBeConvertedToValidGoNames(t *testing.T) {
 }
 
 func TestThatArraysWithoutDefinedItemTypesAreGeneratedAsEmptyInterfaces(t *testing.T) {
-	root := &Schema{}
+	root := &js_inputs.Schema{}
 	root.Title = "Array without defined item"
-	root.Properties = map[string]*Schema{
+	root.Properties = map[string]*js_inputs.Schema{
 		"name": {TypeValue: "string"},
 		"repositories": {
 			TypeValue: "array",
@@ -567,7 +569,7 @@ func TestThatArraysWithoutDefinedItemTypesAreGeneratedAsEmptyInterfaces(t *testi
 
 	root.Init()
 
-	g := New(root)
+	g := js_inputs.New(root)
 	err := g.CreateTypes()
 	results := g.Structs
 
@@ -584,7 +586,7 @@ func TestThatArraysWithoutDefinedItemTypesAreGeneratedAsEmptyInterfaces(t *testi
 	if o, ok := results["ArrayWithoutDefinedItem"]; ok {
 		if f, ok := o.Fields["Repositories"]; ok {
 			if f.Type != "[]interface{}" {
-				t.Errorf("Since the schema doesn't include a type for the array items, the property type should be []interface{}, but was %s.", f.Type)
+				t.Errorf("Since the js_inputs.Schema doesn't include a type for the array items, the property type should be []interface{}, but was %s.", f.Type)
 			}
 		} else {
 			t.Errorf("Expected the ArrayWithoutDefinedItem type to have a Repostitories field, but none was found.")
@@ -593,15 +595,15 @@ func TestThatArraysWithoutDefinedItemTypesAreGeneratedAsEmptyInterfaces(t *testi
 }
 
 func TestThatTypesWithMultipleDefinitionsAreGeneratedAsEmptyInterfaces(t *testing.T) {
-	root := &Schema{}
+	root := &js_inputs.Schema{}
 	root.Title = "Multiple possible types"
-	root.Properties = map[string]*Schema{
+	root.Properties = map[string]*js_inputs.Schema{
 		"name": {TypeValue: []interface{}{"string", "integer"}},
 	}
 
 	root.Init()
 
-	g := New(root)
+	g := js_inputs.New(root)
 	err := g.CreateTypes()
 	results := g.Structs
 
@@ -618,7 +620,7 @@ func TestThatTypesWithMultipleDefinitionsAreGeneratedAsEmptyInterfaces(t *testin
 	if o, ok := results["MultiplePossibleTypes"]; ok {
 		if f, ok := o.Fields["Name"]; ok {
 			if f.Type != "interface{}" {
-				t.Errorf("Since the schema has multiple types for the item, the property type should be []interface{}, but was %s.", f.Type)
+				t.Errorf("Since the js_inputs.Schema has multiple types for the item, the property type should be []interface{}, but was %s.", f.Type)
 			}
 		} else {
 			t.Errorf("Expected the MultiplePossibleTypes type to have a Name field, but none was found.")
@@ -628,7 +630,7 @@ func TestThatTypesWithMultipleDefinitionsAreGeneratedAsEmptyInterfaces(t *testin
 
 func TestThatUnmarshallingIsPossible(t *testing.T) {
 	// {
-	//     "$schema": "http://json-schema.org/draft-04/schema#",
+	//     "$js_inputs.Schema": "http://json-js_inputs.Schema.org/draft-04/js_inputs.Schema#",
 	//     "name": "Example",
 	//     "type": "object",
 	//     "properties": {
@@ -687,34 +689,34 @@ func TestThatUnmarshallingIsPossible(t *testing.T) {
 func TestTypeAliases(t *testing.T) {
 	tests := []struct {
 		gotype           string
-		input            *Schema
+		input            *js_inputs.Schema
 		structs, aliases int
 	}{
 		{
 			gotype:  "string",
-			input:   &Schema{TypeValue: "string"},
+			input:   &js_inputs.Schema{TypeValue: "string"},
 			structs: 0,
 			aliases: 1,
 		},
 		{
 			gotype:  "int",
-			input:   &Schema{TypeValue: "integer"},
+			input:   &js_inputs.Schema{TypeValue: "integer"},
 			structs: 0,
 			aliases: 1,
 		},
 		{
 			gotype:  "bool",
-			input:   &Schema{TypeValue: "boolean"},
+			input:   &js_inputs.Schema{TypeValue: "boolean"},
 			structs: 0,
 			aliases: 1,
 		},
 		{
 			gotype: "[]*Foo",
-			input: &Schema{TypeValue: "array",
-				Items: &Schema{
+			input: &js_inputs.Schema{TypeValue: "array",
+				Items: &js_inputs.Schema{
 					TypeValue: "object",
 					Title:     "foo",
-					Properties: map[string]*Schema{
+					Properties: map[string]*js_inputs.Schema{
 						"nestedproperty": {TypeValue: "string"},
 					},
 				}},
@@ -723,24 +725,24 @@ func TestTypeAliases(t *testing.T) {
 		},
 		{
 			gotype:  "[]interface{}",
-			input:   &Schema{TypeValue: "array"},
+			input:   &js_inputs.Schema{TypeValue: "array"},
 			structs: 0,
 			aliases: 1,
 		},
 		{
 			gotype: "map[string]string",
-			input: &Schema{
+			input: &js_inputs.Schema{
 				TypeValue:            "object",
-				AdditionalProperties: (*AdditionalProperties)(&Schema{TypeValue: "string"}),
+				AdditionalProperties: (*js_inputs.AdditionalProperties)(&js_inputs.Schema{TypeValue: "string"}),
 			},
 			structs: 0,
 			aliases: 1,
 		},
 		{
 			gotype: "map[string]interface{}",
-			input: &Schema{
+			input: &js_inputs.Schema{
 				TypeValue:            "object",
-				AdditionalProperties: (*AdditionalProperties)(&Schema{TypeValue: []interface{}{"string", "integer"}}),
+				AdditionalProperties: (*js_inputs.AdditionalProperties)(&js_inputs.Schema{TypeValue: []interface{}{"string", "integer"}}),
 			},
 			structs: 0,
 			aliases: 1,
@@ -750,7 +752,7 @@ func TestTypeAliases(t *testing.T) {
 	for _, test := range tests {
 		test.input.Init()
 
-		g := New(test.input)
+		g := js_inputs.New(test.input)
 		err := g.CreateTypes()
 		structs := g.Structs
 		aliases := g.Aliases

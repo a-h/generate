@@ -1,4 +1,4 @@
-package generate
+package inputs
 
 import (
 	"encoding/json"
@@ -32,7 +32,7 @@ func ReadInputFiles(inputFiles []string, schemaKeyRequired bool) ([]*Schema, err
 		schemas[i], err = ParseWithSchemaKeyRequired(string(b), &fileURI, schemaKeyRequired)
 		if err != nil {
 			if jsonError, ok := err.(*json.SyntaxError); ok {
-				line, character, lcErr := lineAndCharacter(b, int(jsonError.Offset))
+				line, character, lcErr := LineAndCharacter(b, int(jsonError.Offset))
 				errStr := fmt.Sprintf("cannot parse JSON schema due to a syntax error at %s line %d, character %d: %v\n", file, line, character, jsonError.Error())
 				if lcErr != nil {
 					errStr += fmt.Sprintf("couldn't find the line and character position of the error due to error %v\n", lcErr)
@@ -40,7 +40,7 @@ func ReadInputFiles(inputFiles []string, schemaKeyRequired bool) ([]*Schema, err
 				return nil, errors.New(errStr)
 			}
 			if jsonError, ok := err.(*json.UnmarshalTypeError); ok {
-				line, character, lcErr := lineAndCharacter(b, int(jsonError.Offset))
+				line, character, lcErr := LineAndCharacter(b, int(jsonError.Offset))
 				errStr := fmt.Sprintf("the JSON type '%v' cannot be converted into the Go '%v' type on struct '%s', field '%v'. See input file %s line %d, character %d\n", jsonError.Value, jsonError.Type.Name(), jsonError.Struct, jsonError.Field, file, line, character)
 				if lcErr != nil {
 					errStr += fmt.Sprintf("couldn't find the line and character position of the error due to error %v\n", lcErr)
@@ -54,7 +54,7 @@ func ReadInputFiles(inputFiles []string, schemaKeyRequired bool) ([]*Schema, err
 	return schemas, nil
 }
 
-func lineAndCharacter(bytes []byte, offset int) (line int, character int, err error) {
+func LineAndCharacter(bytes []byte, offset int) (line int, character int, err error) {
 	lf := byte(0x0A)
 
 	if offset > len(bytes) {
