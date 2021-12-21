@@ -11,27 +11,18 @@
     },
     "property3": {
       "type": "object",
-      "properties": {
-        "age": { "type": "integer"}
-      },
       "additionalProperties": {
         "type": "integer"
       }
     },
     "property4": {
       "type": "object",
-      "properties": {
-        "age": { "type": "integer"}
-      },
       "additionalProperties": {
         "type": "string"
       }
     },
     "property5": {
       "type": "object",
-      "properties": {
-        "age": { "type": "integer"}
-      },
       "additionalProperties": {
         "type": "object",
         "title": "not so anonymous",
@@ -39,16 +30,11 @@
           "subproperty1": {
             "type": "integer"
           }
-
         }
       }
     },
     "property6": {
       "type": "object",
-      "properties": {
-        "age": { "type": "integer" },
-        "pronoun": { "type": "string" }
-      },
       "additionalProperties": {
         "type": "object",
         "properties": {
@@ -61,8 +47,12 @@
     "property7": {
       "type": "object",
       "properties": {
-        "street_number": { "type": "integer"},
-        "street_name": { "type": "string"},
+        "street_number": {
+          "type": "integer"
+        },
+        "street_name": {
+          "type": "string"
+        },
         "po_box": {
           "type": "object",
           "properties": {
@@ -78,6 +68,9 @@
         "additionalProperties": {
           "type": "object",
           "properties": {
+            "subproperty1": {
+              "type": "integer"
+            },
             "color": {
               "type": "string"
             },

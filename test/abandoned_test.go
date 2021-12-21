@@ -2,8 +2,11 @@ package test
 
 import (
 	"testing"
-	"github.com/a-h/generate/test/abandoned_gen"
+
+	abandoned "github.com/azarc-io/json-schema-to-go-struct-generator/test/generated/abandoned/abandoned"
 )
+
+//go:generate go run ../cmd/main.go --input ./samples/abandoned --output ./generated/abandoned
 
 func TestAbandoned(t *testing.T) {
 	// this just tests the name generation works correctly

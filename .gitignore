@@ -1,3 +1,4 @@
 /schema-generate
 .idea
-test/*_gen
+.DS_Store
+test/generated

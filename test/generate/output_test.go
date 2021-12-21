@@ -1,18 +1,19 @@
 package generate
 
 import (
+	js_inputs "github.com/azarc-io/json-schema-to-go-struct-generator/pkg/inputs"
 	"reflect"
 	"strings"
 	"testing"
 )
 
 func TestThatFieldNamesAreOrdered(t *testing.T) {
-	m := map[string]Field{
+	m := map[string]js_inputs.Field{
 		"z": {},
 		"b": {},
 	}
 
-	actual := getOrderedFieldNames(m)
+	actual := js_inputs.GetOrderedFieldNames(m)
 	expected := []string{"b", "z"}
 
 	if !reflect.DeepEqual(actual, expected) {
@@ -21,13 +22,13 @@ func TestThatFieldNamesAreOrdered(t *testing.T) {
 }
 
 func TestThatStructNamesAreOrdered(t *testing.T) {
-	m := map[string]Struct{
+	m := map[string]js_inputs.Struct{
 		"c": {},
 		"b": {},
 		"a": {},
 	}
 
-	actual := getOrderedStructNames(m)
+	actual := js_inputs.GetOrderedStructNames(m)
 	expected := []string{"a", "b", "c"}
 
 	if !reflect.DeepEqual(actual, expected) {
@@ -78,7 +79,7 @@ func TestLineAndCharacterFromOffset(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		actualLine, actualCharacter, err := lineAndCharacter(test.In, test.Offset)
+		actualLine, actualCharacter, err := js_inputs.LineAndCharacter(test.In, test.Offset)
 		if err != nil && !test.ExpectedError {
 			t.Errorf("Unexpected error for input %s at offset %d: %v", test.In, test.Offset, err)
 			continue
