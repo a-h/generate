@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode"
 )
@@ -325,7 +326,14 @@ func (g *Generator) getSchemaName(keyName string, schema *Schema) string {
 }
 
 // GetGolangName strips invalid characters out of golang struct or field names.
+var mustContainLowercaseRegex = regexp.MustCompile("[a-z]")
 func GetGolangName(s string) string {
+	//Always convert to lower case to avoid all capital letters in the name.
+	// eg. stop `title: "MY FOO BAR"`  becoming `type MYFOOBAR struct {...`
+	if ! mustContainLowercaseRegex.MatchString(s) {
+		s = strings.ToLower(s)
+	}
+
 	buf := bytes.NewBuffer([]byte{})
 	for i, v := range splitOnAll(s, IsNotAGoNameCharacter) {
 		if i == 0 && strings.IndexAny(v, "0123456789") == 0 {
