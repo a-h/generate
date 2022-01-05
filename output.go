@@ -131,8 +131,8 @@ func (strct *%s) MarshalJSON() ([]byte, error) {
 
 			fmt.Fprintf(w,
 				`    // Marshal the "%[1]s" field
-    if comma { 
-        buf.WriteString(",") 
+    if comma {
+        buf.WriteString(",")
     }
     buf.WriteString("\"%[1]s\": ")
 	if tmp, err := json.Marshal(strct.%[2]s); err != nil {
@@ -268,7 +268,7 @@ func (strct *%s) UnmarshalJSON(b []byte) error {
 
 func outputNameAndDescriptionComment(name, description string, w io.Writer) {
 	if strings.Index(description, "\n") == -1 {
-		fmt.Fprintf(w, "// %s %s\n", name, description)
+		fmt.Fprintf(w, "// %s\n", name)
 		return
 	}
 
