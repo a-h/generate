@@ -288,7 +288,6 @@ func outputFieldDescriptionComment(description string, w io.Writer) {
 
 func cleanPackageName(pkg string) string {
 	pkg = strings.Replace(pkg, ".", "", -1)
-	pkg = strings.Replace(pkg, "_", "", -1)
 	pkg = strings.Replace(pkg, "-", "", -1)
 	return pkg
 }
