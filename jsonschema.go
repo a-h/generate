@@ -36,6 +36,8 @@ type Schema struct {
 	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.5
 	Properties map[string]*Schema
 	Required   []string
+	ReadOnly   bool
+	WriteOnly  bool
 
 	// "additionalProperties": {...}
 	AdditionalProperties *AdditionalProperties

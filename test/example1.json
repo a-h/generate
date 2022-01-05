@@ -24,6 +24,14 @@
             },
             "minItems": 1,
             "uniqueItems": true
+        },
+        "inStock": {
+            "type": "boolean",
+            "readOnly": true
+        },
+        "couponCode": {
+            "type": "string",
+            "writeOnly": true
         }
     },
     "required": [

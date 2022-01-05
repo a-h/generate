@@ -1,9 +1,11 @@
 package test
 
 import (
+	"strings"
 	"encoding/json"
-	"testing"
 	"github.com/a-h/generate/test/example1_gen"
+	"reflect"
+	"testing"
 )
 
 func TestExample1(t *testing.T) {
@@ -41,6 +43,27 @@ func TestExample1(t *testing.T) {
 		} else {
 			if !param.ExpectedResult {
 				t.Fatal("Expected failure, got success: " + param.Name)
+			}
+		}
+	}
+}
+
+func TestExample1Access(t *testing.T) {
+	fs := reflect.VisibleFields(reflect.TypeOf(example1.Product{}))
+	for _, f := range fs {
+		if f.Name == "CouponCode" {
+			if v, ok := f.Tag.Lookup("jsonSchema"); !ok {
+				t.Fatal("Expected CouponCode field to have jsonSchema tag")
+			} else if !strings.Contains(v, "writeonly") {
+				t.Fatalf("CouponCode's json %q doesn't specify writeonly", v)
+			}
+		}
+
+		if f.Name == "InStock" {
+			if v, ok := f.Tag.Lookup("jsonSchema"); !ok {
+				t.Fatal("Expected InStock field to have jsonSchema tag")
+			} else if !strings.Contains(v, "readonly") {
+				t.Fatalf("InStock's json %q doesn't specify readonly", v)
 			}
 		}
 	}

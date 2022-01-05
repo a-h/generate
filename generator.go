@@ -191,12 +191,21 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 		if err != nil {
 			return "", err
 		}
+
+		access := Access_RW
+		if prop.ReadOnly {
+			access = Access_RO
+		} else if prop.WriteOnly {
+			access = Access_WO
+		}
+
 		f := Field{
 			Name:        fieldName,
 			JSONName:    propKey,
 			Type:        fieldType,
 			Required:    contains(schema.Required, propKey),
 			Description: prop.Description,
+			Access:      access,
 		}
 		if f.Required {
 			strct.GenerateCode = true
@@ -384,6 +393,14 @@ type Struct struct {
 	AdditionalType string
 }
 
+type Access int
+
+const (
+	Access_RW Access = iota
+	Access_RO
+	Access_WO
+)
+
 // Field defines the data required to generate a field in Go.
 type Field struct {
 	// The golang name, e.g. "Address1"
@@ -395,5 +412,8 @@ type Field struct {
 	Type string
 	// Required is set to true when the field is required.
 	Required    bool
+	// Access type, either R/W (default), R/O, or W/O.
+	Access Access
+
 	Description string
 }
