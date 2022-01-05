@@ -36,14 +36,17 @@ type Schema struct {
 	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.5
 	Properties map[string]*Schema
 	Required   []string
-	ReadOnly   bool
-	WriteOnly  bool
 
 	// "additionalProperties": {...}
 	AdditionalProperties *AdditionalProperties
 
 	// "additionalProperties": false
 	AdditionalPropertiesBool *bool `json:"-"`
+
+	// ReadOnly and WriteOnly specify access to a field.
+	// https://json-schema.org/draft-07/json-schema-validation.html#rfc.section.10.3
+	ReadOnly   bool
+	WriteOnly  bool
 
 	AnyOf []*Schema
 	AllOf []*Schema
