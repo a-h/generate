@@ -83,12 +83,23 @@ func Output(w io.Writer, g *Generator, pkg string) {
 			if f.Required {
 				omitempty = ""
 			}
+			schemaTags := []string{}
+			if f.Access == Access_RO {
+				schemaTags = append(schemaTags, "readonly")
+			} else if f.Access == Access_WO {
+				schemaTags = append(schemaTags, "writeonly")
+			}
+
+			schemaTag := ""
+			if len(schemaTags) > 0 {
+				schemaTag = fmt.Sprintf(" jsonSchema:\"%s\"", strings.Join(schemaTags, ","))
+			}
 
 			if f.Description != "" {
 				outputFieldDescriptionComment(f.Description, w)
 			}
 
-			fmt.Fprintf(w, "  %s %s `json:\"%s%s\"`\n", f.Name, f.Type, f.JSONName, omitempty)
+			fmt.Fprintf(w, "  %s %s `json:\"%s%s\"%s`\n", f.Name, f.Type, f.JSONName, omitempty, schemaTag)
 		}
 
 		fmt.Fprintln(w, "}")
