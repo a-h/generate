@@ -238,7 +238,7 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 	}
 	// additionalProperties as either true (everything) or false (nothing)
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.AdditionalPropertiesBool != nil {
-		if *schema.AdditionalProperties.AdditionalPropertiesBool == true {
+		if *schema.AdditionalProperties.AdditionalPropertiesBool {
 			// everything is valid additional
 			subTyp := "map[string]interface{}"
 			f := Field{
@@ -258,7 +258,12 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 			strct.AdditionalType = "false"
 		}
 	}
+	if len(strct.Fields) == 0 {
+		return "map[string]interface{}", nil
+	}
+
 	g.Structs[strct.Name] = strct
+
 	// objects are always a pointer
 	return getPrimitiveTypeName("object", name, true)
 }
