@@ -98,7 +98,7 @@ func (g *Generator) processSchema(schemaName string, schema *Schema) (typ string
 	schema.FixMissingTypeValue()
 	// if we have multiple schema types, the golang type will be interface{}
 	typ = "interface{}"
-	types, isMultiType := schema.MultiType()
+	types, isMultiType, pointer := schema.MultiType()
 	if len(types) > 0 {
 		for _, schemaType := range types {
 			name := schemaName
@@ -123,7 +123,7 @@ func (g *Generator) processSchema(schemaName string, schema *Schema) (typ string
 					return rv, nil
 				}
 			default:
-				rv, err := getPrimitiveTypeName(schemaType, "", false)
+				rv, err := getPrimitiveTypeName(schemaType, "", pointer)
 				if err != nil {
 					return "", err
 				}
@@ -280,10 +280,19 @@ func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name
 		}
 		return "[]" + subType, nil
 	case "boolean":
+		if pointer {
+			return "*bool", nil
+		}
 		return "bool", nil
 	case "integer":
+		if pointer {
+			return "*int", nil
+		}
 		return "int", nil
 	case "number":
+		if pointer {
+			return "*float64", nil
+		}
 		return "float64", nil
 	case "null":
 		return "nil", nil
@@ -296,6 +305,9 @@ func getPrimitiveTypeName(schemaType string, subType string, pointer bool) (name
 		}
 		return subType, nil
 	case "string":
+		if pointer {
+			return "*string", nil
+		}
 		return "string", nil
 	}
 

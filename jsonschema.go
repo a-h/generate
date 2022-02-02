@@ -150,10 +150,25 @@ func (schema *Schema) Type() (firstOrDefault string, multiple bool) {
 }
 
 // MultiType returns "type" as an array
-func (schema *Schema) MultiType() ([]string, bool) {
+func (schema *Schema) MultiType() (types []string, isMultiType bool, pointer bool) {
 	// We've got a single value, e.g. { "type": "object" }
 	if ts, ok := schema.TypeValue.(string); ok {
-		return []string{ts}, false
+		return []string{ts}, false, false
+	}
+
+	if len(schema.OneOf) > 0 {
+		rv := []string{}
+		optional := false
+		for _, t := range schema.OneOf {
+			if t.TypeValue == "null" {
+				optional = true
+			} else {
+				if s, ok := t.TypeValue.(string); ok {
+					rv = append(rv, s)
+				}
+			}
+		}
+		return rv, len(rv) > 1, optional
 	}
 
 	// We could have multiple types in the type value, e.g. { "type": [ "object", "array" ] }
@@ -164,10 +179,10 @@ func (schema *Schema) MultiType() ([]string, bool) {
 				rv = append(rv, s)
 			}
 		}
-		return rv, len(rv) > 1
+		return rv, len(rv) > 1, false
 	}
 
-	return nil, false
+	return nil, false, false
 }
 
 // GetRoot returns the root schema.
