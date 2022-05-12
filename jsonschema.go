@@ -63,9 +63,6 @@ type Schema struct {
 	// http://json-schema.org/draft-07/json-schema-validation.html#rfc.section.6.4
 	Items *Schema
 
-	// NameCount is the number of times the instance name was encountered across the schema.
-	NameCount int `json:"-" `
-
 	// Parent schema
 	Parent *Schema `json:"-" `
 
