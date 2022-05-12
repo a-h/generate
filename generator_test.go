@@ -775,6 +775,42 @@ func TestTypeAliases(t *testing.T) {
 	}
 }
 
+// Test that reusing type names still results in distict structs
+// being generated.  Problems with the implementation may also affect
+// any tests that reference definitions.
+func TestThatReusedNamesRemainDistinctTypes(t *testing.T) {
+	root := &Schema{}
+	root.Title = "RootElement"
+	root.Properties = map[string]*Schema{
+		"property1": {TypeValue: "object", Title: "foo", Properties: map[string]*Schema{"sub": {TypeValue: "object", Properties: map[string]*Schema{"subproperty1": {TypeValue: "integer"}}}}},
+		"property2": {TypeValue: "object", Title: "foo", Properties: map[string]*Schema{"sub": {TypeValue: "object", Properties: map[string]*Schema{"subproperty1": {TypeValue: "string"}}}}},
+	}
+
+	root.Init()
+
+	g := New(root)
+	err := g.CreateTypes()
+	if err != nil {
+		t.Error(err)
+	}
+	results := g.Structs
+	if len(results) != 5 {
+		t.Errorf("Expected 5 results, but got %d results", len(results))
+	}
+	if _, ok := results["Foo"]; !ok {
+		t.Errorf("Expected type Foo, did not find it")
+	}
+	if _, ok := results["Foo2"]; !ok {
+		t.Errorf("Expected type Foo2, did not find it")
+	}
+	if _, ok := results["Sub"]; !ok {
+		t.Errorf("Expected type Sub, did not find it")
+	}
+	if _, ok := results["Sub2"]; !ok {
+		t.Errorf("Expected type Sub2, did not find it")
+	}
+}
+
 // Root is an example of a generated type.
 type Root struct {
 	Name interface{} `json:"name,omitempty"`

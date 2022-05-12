@@ -174,11 +174,41 @@ func (g *Generator) processArray(name string, schema *Schema) (typeStr string, e
 // schema: detail incl properties & child objects
 // returns: generated type
 func (g *Generator) processObject(name string, schema *Schema) (typ string, err error) {
+	sfp := schema.PathElement
+	nameCount := 1
+	finalName := name
+	sparent := schema.Parent
+	// Avoid quashing one or more types that share the same name.
+	// Generate the full path from root to compare whether the type
+	// is legitimately the same, as it would be due to references,
+	// or whether they're coming from different places in the tree.
+	if og, ok := g.Structs[name]; ok {
+		// Assuming there are no cycles.
+		for sparent != nil {
+			// Skip the root element for path comparison purposes, not
+			// everything has root as its ultimate ancestor.
+			if sparent.PathElement != "#" {
+				sfp = fmt.Sprintf("%s/%s", sparent.PathElement, sfp)
+			}
+			sparent = sparent.Parent
+		}
+		if og.PathElement != sfp {
+			// Turn different Foos into Foo, Foo2, Foo3, etc.
+			// The original is the only name count that matters,
+			// the rest are unused.
+			og.NameCount += 1
+			g.Structs[name] = og
+			finalName = fmt.Sprintf("%v%v", name, og.NameCount)
+		}
+	}
+	name = finalName
 	strct := Struct{
 		ID:          schema.ID(),
 		Name:        name,
 		Description: schema.Description,
 		Fields:      make(map[string]Field, len(schema.Properties)),
+		NameCount:   nameCount,
+		PathElement: sfp,
 	}
 	// cache the object name in case any sub-schemas recursively reference it
 	schema.GeneratedType = "*" + name
@@ -238,7 +268,7 @@ func (g *Generator) processObject(name string, schema *Schema) (typ string, err 
 	}
 	// additionalProperties as either true (everything) or false (nothing)
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.AdditionalPropertiesBool != nil {
-		if *schema.AdditionalProperties.AdditionalPropertiesBool == true {
+		if *schema.AdditionalProperties.AdditionalPropertiesBool {
 			// everything is valid additional
 			subTyp := "map[string]interface{}"
 			f := Field{
@@ -382,6 +412,9 @@ type Struct struct {
 
 	GenerateCode   bool
 	AdditionalType string
+
+	PathElement string
+	NameCount   int
 }
 
 // Field defines the data required to generate a field in Go.
