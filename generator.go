@@ -174,34 +174,41 @@ func (g *Generator) processArray(name string, schema *Schema) (typeStr string, e
 // schema: detail incl properties & child objects
 // returns: generated type
 func (g *Generator) processObject(name string, schema *Schema) (typ string, err error) {
-	sfp := schema.PathElement
 	nameCount := 1
 	finalName := name
+	sfp := schema.PathElement
 	sparent := schema.Parent
+	// Get the full path to root for each object, assuming there are
+	// no cycles.
+	for sparent != nil {
+		// Skip the root element for path comparison purposes, not
+		// everything has root as its ultimate ancestor.
+		if sparent.PathElement != "#" {
+			sfp = fmt.Sprintf("%s/%s", sparent.PathElement, sfp)
+		}
+		sparent = sparent.Parent
+	}
 	// Avoid quashing one or more types that share the same name.
-	// Generate the full path from root to compare whether the type
+	// Use the full path from root to compare whether the type
 	// is legitimately the same, as it would be due to references,
 	// or whether they're coming from different places in the tree.
-	if og, ok := g.Structs[name]; ok {
-		// Assuming there are no cycles.
-		for sparent != nil {
-			// Skip the root element for path comparison purposes, not
-			// everything has root as its ultimate ancestor.
-			if sparent.PathElement != "#" {
-				sfp = fmt.Sprintf("%s/%s", sparent.PathElement, sfp)
-			}
-			sparent = sparent.Parent
-		}
+	// This is a loop to check for whether the new name is also a
+	// conflicting name and to keep doing so until a unique name
+	// is found.
+	for og, ok := g.Structs[name]; ok; og, ok = g.Structs[name] {
 		if og.PathElement != sfp {
 			// Turn different Foos into Foo, Foo2, Foo3, etc.
 			// The original is the only name count that matters,
 			// the rest are unused.
 			og.NameCount += 1
 			g.Structs[name] = og
+			nameCount = og.NameCount
 			finalName = fmt.Sprintf("%v%v", name, og.NameCount)
+			name = finalName
+		} else {
+			break
 		}
 	}
-	name = finalName
 	strct := Struct{
 		ID:          schema.ID(),
 		Name:        name,
