@@ -11,7 +11,7 @@ Generates Go (golang) Structs and Validation code from JSON schema.
 Install
 
 ```console
-$ go get -u github.com/CDimonaco/generate/...
+$ go install github.com/CDimonaco/generate/...@latest
 ```
 
 or
