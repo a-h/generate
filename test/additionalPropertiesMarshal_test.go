@@ -2,7 +2,7 @@ package test
 
 import (
 	"testing"
-	gen "github.com/a-h/generate/test/additionalPropertiesMarshal_gen"
+	gen "github.com/CDimonaco/generate/test/additionalPropertiesMarshal_gen"
 	"encoding/json"
 	"reflect"
 )

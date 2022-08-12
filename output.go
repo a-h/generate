@@ -31,7 +31,7 @@ func getOrderedStructNames(m map[string]Struct) []string {
 }
 
 // Output generates code and writes to w.
-func Output(w io.Writer, g *Generator, pkg string) {
+func Output(w io.Writer, g *Generator, pkg string, generateMarshal bool) {
 	structs := g.Structs
 	aliases := g.Aliases
 
@@ -46,7 +46,7 @@ func Output(w io.Writer, g *Generator, pkg string) {
 
 	for _, k := range getOrderedStructNames(structs) {
 		s := structs[k]
-		if s.GenerateCode {
+		if s.GenerateCode && !generateMarshal {
 			emitMarshalCode(codeBuf, s, imports)
 			emitUnmarshalCode(codeBuf, s, imports)
 		}

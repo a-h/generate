@@ -8,13 +8,14 @@ import (
 	"io"
 	"os"
 
-	"github.com/a-h/generate"
+	"github.com/CDimonaco/generate"
 )
 
 var (
 	o                     = flag.String("o", "", "The output file for the schema.")
 	p                     = flag.String("p", "main", "The package that the structs are created in.")
 	i                     = flag.String("i", "", "A single file path (used for backwards compatibility).")
+	skipValidation        = flag.Bool("skipMarshalling", false, "Skip unmarshalling and marshalling code generation")
 	schemaKeyRequiredFlag = flag.Bool("schemaKeyRequired", false, "Allow input files with no $schema key.")
 )
 
@@ -63,5 +64,5 @@ func main() {
 		}
 	}
 
-	generate.Output(w, g, *p)
+	generate.Output(w, g, *p, *skipValidation)
 }
