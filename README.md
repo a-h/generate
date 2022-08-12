@@ -28,6 +28,10 @@ Run
 $ schema-generate exampleschema.json
 ```
 
+Skip marshalling and unmarshal code
+
+In order to skip the generation of marshalling and unmarshalling code, you can pass the flag -skipMarshalling
+
 # Example
 
 This schema
