@@ -11,6 +11,10 @@ Generates Go (golang) Structs and Validation code from JSON schema.
 Install
 
 ```console
+$ go install github.com/a-h/generate/cmd/schema-generate@latest
+```
+or
+```console
 $ go get -u github.com/a-h/generate/...
 ```
 
