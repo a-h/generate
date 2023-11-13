@@ -100,6 +100,7 @@ func Output(w io.Writer, g *Generator, pkg string) {
 
 func emitMarshalCode(w io.Writer, s Struct, imports map[string]bool) {
 	imports["bytes"] = true
+	imports["reflect"] = true
 	fmt.Fprintf(w,
 		`
 func (strct *%s) MarshalJSON() ([]byte, error) {
@@ -127,21 +128,37 @@ func (strct *%s) MarshalJSON() ([]byte, error) {
 				} else {
 					fmt.Fprintf(w, "    // only required object types supported for marshal checking (for now)\n")
 				}
-			}
 
-			fmt.Fprintf(w,
-				`    // Marshal the "%[1]s" field
-    if comma { 
-        buf.WriteString(",") 
-    }
-    buf.WriteString("\"%[1]s\": ")
+				fmt.Fprintf(w,
+					`    // Marshal the "%[1]s" field
+	if comma { 
+		buf.WriteString(",") 
+	}
+	buf.WriteString("\"%[1]s\": ")
 	if tmp, err := json.Marshal(strct.%[2]s); err != nil {
 		return nil, err
- 	} else {
- 		buf.Write(tmp)
+	} else {
+		buf.Write(tmp)
 	}
 	comma = true
 `, f.JSONName, f.Name)
+			} else {
+				fmt.Fprintf(w,
+					`    // Marshal the "%[1]s" field
+	if !reflect.ValueOf(strct.%[2]s).IsZero(){
+		if comma { 
+			buf.WriteString(",") 
+		}
+		buf.WriteString("\"%[1]s\": ")
+		if tmp, err := json.Marshal(strct.%[2]s); err != nil {
+			return nil, err
+		} else {
+			buf.Write(tmp)
+		}
+		comma = true
+	}
+`, f.JSONName, f.Name)
+			}
 		}
 	}
 	if s.AdditionalType != "" {
